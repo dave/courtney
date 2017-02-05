@@ -1,17 +1,17 @@
 # Courtney is a coverage tool for Go.
 Courtney runs your tests and prepares your code coverage files.
 
-1) All packages are tested with coverage.
-2) All the coverage files are merged.
-3) Some parts of the code don't need to be tested. We disable these in the coverage files.
-4) You should have 100% coverage! Optionally we enforce this. 
+1) All packages are tested with coverage.  
+2) All the coverage files are merged. 
+3) Some parts of the code don't need to be tested. We disable these in the coverage files.  
+4) You should have 100% coverage! Optionally we enforce this.   
 
 # What doesn't need to be tested?
-1) Blocks including a panic
-2) Blocks returning an non-nil error*
-3) Blocks containing the "//notest" comment.
-4) Files containing the "//notest-file" comment.
-5) Packages containing the "//notest-package" comment.
+1) Blocks including a panic.  
+2) Blocks returning an error that has been tested to be non-nil.    
+3) Blocks containing the "//notest" comment.  
+4) Files containing the "//notest-file" comment.  
+5) Packages containing the "//notest-package" comment.    
 
 # What courtney doesn't do
 Courtney doesn't mean your tests are complete. Courtney doesn't mean your tests 
