@@ -1,0 +1,3 @@
+package courtney
+
+func foo() {}
