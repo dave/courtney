@@ -22,7 +22,7 @@ Courtney makes your code coverage stats much more meaningful. If you enforce
 100% test coverage, then any new functionality will have to be accompanied with 
 tests.
 
-* If multiple return values are returned, error must be the last, and all 
+\* If multiple return values are returned, error must be the last, and all 
   others must be nil or zero values. We also include blocks returning an error 
   which is the result of a function taking a non-nil error as a parameter, e.g.
   github.com/pkg/errors.Wrap(error, string).
