@@ -1,4 +1,4 @@
-package courtney
+package scanner
 
 import (
 	"go/ast"
@@ -276,17 +276,17 @@ func (c *CodeMap) inspectNodeForWrap(block *ast.BlockStmt, inputErrorObject type
 			if !ok {
 				return true
 			}
-			// covers the case:
-			// e := foo()
-			newErrorObject, ok := c.info.Defs[id]
-			if !ok {
+			var newErrorObject types.Object
+			switch n.Tok {
+			case token.DEFINE:
+				// covers the case:
+				// e := foo()
+				newErrorObject = c.info.Defs[id]
+			case token.ASSIGN:
 				// covers the case:
 				// var e error
 				// e = foo()
-				newErrorObject, ok = c.info.Uses[id]
-				if !ok {
-					panic("can't find ob")
-				}
+				newErrorObject = c.info.Uses[id]
 			}
 
 			if c.isErrorCall(n.Rhs[0], inputErrorObject) {

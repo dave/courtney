@@ -1,4 +1,4 @@
-package courtney_test
+package scanner_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 
 	"strconv"
 
-	"github.com/dave/courtney"
+	"github.com/dave/courtney/scanner"
 	"github.com/stretchr/testify/require"
 )
 
@@ -356,7 +356,7 @@ func TestGeneral(t *testing.T) {
 }
 
 func test(t *testing.T, name, in string) {
-	cm := courtney.NewCodeMap()
+	cm := scanner.NewCodeMap()
 
 	require.NoError(t, cm.ScanFile("foo.bar/baz", "/baz", "main.go", in), "Error in %s", name)
 	require.NoError(t, cm.CheckTypes(), "Error in %s", name)
