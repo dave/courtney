@@ -349,6 +349,9 @@ func (f *FileMap) isErrorReturnNamedResultParameters(r *ast.ReturnStmt, search a
 	case *ast.FuncLit:
 		t = s.Type
 	}
+	if t.Results == nil {
+		return false
+	}
 	last := t.Results.List[len(t.Results.List)-1]
 	if last.Names == nil {
 		// anonymous
