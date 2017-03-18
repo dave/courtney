@@ -565,6 +565,20 @@ func TestComments(t *testing.T) {
 				}
 			}
 			`,
+		"case block": `package foo
+			
+			func Foo() bool {
+				switch {
+				case true:
+					// notest
+					if true {       // *
+						return true // *
+					}               // *
+					return false    // *
+				}
+				return false
+			}
+			`,
 	}
 	test(t, tests)
 }
