@@ -10,53 +10,33 @@ import (
 
 	"crypto/md5"
 
-	"github.com/dave/patsy"
+	"github.com/dave/courtney"
+	"github.com/dave/courtney/tester/merge"
 	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/cover"
-	"github.com/dave/courtney/tester/merge"
 )
 
-func New(env vos.Env) *Tester {
-	return &Tester{
-		env: env,
+func New(env vos.Env, paths *courtney.PathCache) *Tester {
+	t := &Tester{
+		env:   env,
+		paths: paths,
 	}
+	t.previousWd, _ = t.env.Getwd()
+	return t
 }
 
 type Tester struct {
-	env    vos.Env
-	cover  string
-	Result []*cover.Profile
+	env        vos.Env
+	cover      string
+	Results    []*cover.Profile
+	previousWd string
+	paths      *courtney.PathCache
 }
 
-type spec struct {
-	dir       string
-	pkg       string
-	recursive bool
-}
+func (t *Tester) Test(packages []courtney.PackageSpec) error {
 
-func (t *Tester) Test(packages ...string) error {
-	var dirs []spec
-	for _, p := range packages {
-		s := spec{
-			pkg: p,
-		}
-		if strings.HasSuffix(s.pkg, "/...") {
-			s.pkg = strings.TrimSuffix(s.pkg, "/...")
-			s.recursive = true
-		}
-		if strings.HasSuffix(s.pkg, "/") {
-			s.pkg = strings.TrimSuffix(s.pkg, "/")
-		}
-		dir, err := patsy.GetDirFromPackage(t.env, s.pkg)
-		if err != nil {
-			return err
-		}
-		s.dir = dir
-		dirs = append(dirs, s)
-	}
-
-	t.cover = filepath.Join(dirs[0].dir, ".coverage")
+	t.cover = filepath.Join(packages[0].Dir, ".coverage")
 
 	os.RemoveAll(t.cover)
 	defer os.RemoveAll(t.cover)
@@ -67,62 +47,76 @@ func (t *Tester) Test(packages ...string) error {
 		}
 	}
 
-	processed := map[string]bool{}
-
-	// walker function for processing any recursive packages
-	walker := func(fpath string, file os.FileInfo, err error) error {
-		if err != nil {
-			return errors.Wrap(err, "Error passed in while walking files")
-		}
-		if strings.HasPrefix(file.Name(), ".") {
-			if file.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if file.IsDir() {
-			if _, ok := processed[fpath]; ok {
-				// if we've already processed this dir, skip it
-				return nil
-			}
-			if err := t.processDir(fpath, dirs); err != nil {
-				return err
-			}
-			processed[fpath] = true
-		}
-		return nil
-	}
-
-	for _, spec := range dirs {
-		if spec.recursive {
-			if err := filepath.Walk(spec.dir, walker); err != nil {
-				return errors.Wrap(err, "Error while walking files")
-			}
-		} else {
-			if _, ok := processed[spec.dir]; ok {
-				// if we've already processed this dir, skip it
-				continue
-			}
-			if err := t.processDir(spec.dir, dirs); err != nil {
-				return err
-			}
-			processed[spec.dir] = true
+	for _, spec := range packages {
+		if err := t.processDir(spec.Dir, packages); err != nil {
+			return err
 		}
 	}
+
+	//if scan {
+	//	t.processExcludes()
+	//}
 
 	return nil
 }
 
-func (t *Tester) Print() {
-	for _, p := range t.Result {
-		fmt.Println(p.FileName)
-		for _, b := range p.Blocks {
-			fmt.Printf("%#v\n", b)
-		}
+func (t *Tester) Save() error {
+	if t.Results == nil {
+		fmt.Println("No results")
+		return nil
 	}
+	f, err := os.Create(filepath.Join(t.previousWd, "coverage.out"))
+	if err != nil {
+		return errors.Wrapf(err, "Error creating output coverage file coverage.out")
+	}
+	defer f.Close()
+	merge.DumpProfiles(t.Results, f)
+	return nil
 }
 
-func (t *Tester) processDir(dir string, all []spec) error {
+func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
+	var processed []*cover.Profile
+
+	for _, p := range t.Results {
+
+		// Filenames in t.Results are in go package form. We need to convert to
+		// filepaths before use
+		fpath, err := t.paths.GoNameToFilePath(p.FileName)
+		if err != nil {
+			return err
+		}
+
+		f, ok := excludes[fpath]
+		if !ok {
+			// no excludes in this file - add the profile unchanged
+			processed = append(processed, p)
+			continue
+		}
+		var blocks []cover.ProfileBlock
+		for _, b := range p.Blocks {
+			excluded := false
+			for line := b.StartLine; line <= b.EndLine; line++ {
+				if ex, ok := f[line]; ok && ex {
+					excluded = true
+					break
+				}
+			}
+			if !excluded {
+				blocks = append(blocks, b)
+			}
+		}
+		profile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   blocks,
+		}
+		processed = append(processed, profile)
+	}
+	t.Results = processed
+	return nil
+}
+
+func (t *Tester) processDir(dir string, all []courtney.PackageSpec) error {
 
 	coverageFilename := fmt.Sprintf("%x", md5.Sum([]byte(dir))) + ".out"
 	coverageFilepath := filepath.Join(t.cover, coverageFilename)
@@ -142,20 +136,16 @@ func (t *Tester) processDir(dir string, all []spec) error {
 		return nil
 	}
 
-	// for testing?
-	//if _, err := os.Stat(coverageFilepath); err == nil {
-	//	return processCoverageFile(coverageFilepath)
-	//}
-
 	os.Chdir(dir)
+	//fmt.Println("dir:", dir)
+	//fi, _ := ioutil.ReadDir(dir)
+	//for _, f := range fi {
+	//	fmt.Println(f.Name())
+	//}
 
 	var allpkgs []string
 	for _, s := range all {
-		p := s.pkg
-		if s.recursive {
-			p = fmt.Sprintf("%s/...", s.pkg)
-		}
-		allpkgs = append(allpkgs, p)
+		allpkgs = append(allpkgs, s.Path)
 	}
 	coverParam := fmt.Sprintf("-coverpkg=%s", strings.Join(allpkgs, ","))
 	outParam := fmt.Sprintf("-coverprofile=%s", coverageFilepath)
@@ -168,6 +158,8 @@ func (t *Tester) processDir(dir string, all []spec) error {
 	if err != nil {
 		return errors.Wrapf(err, "Error executing test \nOutput:[\n%s]\n", b)
 	}
+	//by, _ := ioutil.ReadFile(coverageFilepath)
+	//fmt.Println("coverage:", string(by))
 	return t.processCoverageFile(coverageFilepath)
 }
 
@@ -177,7 +169,7 @@ func (t *Tester) processCoverageFile(filename string) error {
 		return err
 	}
 	for _, p := range profiles {
-		if t.Result, err = merge.AddProfile(t.Result, p); err != nil {
+		if t.Results, err = merge.AddProfile(t.Results, p); err != nil {
 			return err
 		}
 	}

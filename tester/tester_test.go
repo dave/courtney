@@ -13,6 +13,7 @@ import (
 
 	"regexp"
 
+	"github.com/dave/courtney"
 	"github.com/dave/courtney/tester"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
@@ -23,17 +24,17 @@ var annotatedLine = regexp.MustCompile(`// \d+$`)
 
 func TestNew(t *testing.T) {
 
-	type attribs []string
+	type args []string
 	type files map[string]string
 	type packages map[string]files
 	type test struct {
-		attribs  attribs
+		args     args
 		packages packages
 	}
 
 	tests := map[string]test{
 		"simple": {
-			attribs: attribs{"ns/..."},
+			args: args{"ns/..."},
 			packages: packages{
 				"a": files{
 					"a.go": `package a
@@ -47,7 +48,7 @@ func TestNew(t *testing.T) {
 			},
 		},
 		"simple test": {
-			attribs: attribs{"ns/..."},
+			args: args{"ns/..."},
 			packages: packages{
 				"a": files{
 					"a.go": `package a
@@ -77,7 +78,7 @@ func TestNew(t *testing.T) {
 			},
 		},
 		"cross package test": {
-			attribs: attribs{"ns/a", "ns/b"},
+			args: args{"ns/a", "ns/b"},
 			packages: packages{
 				"a": files{
 					"a.go": `package a
@@ -142,34 +143,41 @@ func TestNew(t *testing.T) {
 				}
 			}
 
-			ts := tester.New(env)
+			paths := courtney.NewPathCache(env)
 
-			err = ts.Test(test.attribs...)
+			ts := tester.New(env, paths)
+
+			packages, err := courtney.ParseArgs(env, paths, test.args...)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("Error in '%s' parsing args: %s", name, err)
+			}
+
+			err = ts.Test(packages)
+			if err != nil {
+				t.Fatalf("Error in '%s' while running test: %s", name, err)
 			}
 
 			filesInOutput := map[string]bool{}
-			for _, p := range ts.Result {
+			for _, p := range ts.Results {
 				filesInOutput[p.FileName] = true
 				pkg, fname := path.Split(p.FileName)
 				dir, err := patsy.GetDirFromPackage(env, pkg)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("Error in '%s' while getting dir from package: %s", name, err)
 				}
 				src, err := ioutil.ReadFile(filepath.Join(dir, fname))
 				lines := strings.Split(string(src), "\n")
 				matched := map[int]bool{}
 				for _, b := range p.Blocks {
 					if !strings.HasSuffix(lines[b.StartLine], fmt.Sprintf("// %d", b.Count)) {
-						t.Fatalf("Error in %s - incorrect count %d at %s line %d", name, b.Count, p.FileName, b.StartLine)
+						t.Fatalf("Error in '%s' - incorrect count %d at %s line %d", name, b.Count, p.FileName, b.StartLine)
 					}
 					matched[b.StartLine] = true
 				}
 				for i, line := range lines {
 					if annotatedLine.MatchString(line) {
 						if _, ok := matched[i]; !ok {
-							t.Fatalf("Error in %s - annotated line doesn't match a coverage block as %s line %d", name, p.FileName, i)
+							t.Fatalf("Error in '%s' - annotated line doesn't match a coverage block as %s line %d", name, p.FileName, i)
 						}
 					}
 				}
@@ -186,7 +194,7 @@ func TestNew(t *testing.T) {
 					}
 					fullFilename := path.Join("ns", pname, fname)
 					if _, ok := filesInOutput[fullFilename]; !ok {
-						t.Fatalf("Error in %s - %s does not appear in coverge output", name, fullFilename)
+						t.Fatalf("Error in '%s' - %s does not appear in coverge output", name, fullFilename)
 					}
 				}
 			}

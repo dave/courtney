@@ -1,28 +1,35 @@
 package scanner_test
 
 import (
-	"testing"
-
+	"strconv"
 	"strings"
+	"testing"
 
 	"fmt"
 
-	"strconv"
+	"path/filepath"
 
+	"github.com/dave/courtney"
 	"github.com/dave/courtney/scanner"
-	"github.com/stretchr/testify/require"
+	"github.com/dave/patsy/builder"
+	"github.com/dave/patsy/vos"
 )
 
 func TestSingle(t *testing.T) {
-	test(t, "single", `package a
+	test(t, "single", `package foo
 			
-			func a() error {
-				var wrap func(error) error
-				var err error
-				if err != nil {
-					return wrap(err) // *
-				}
-				return nil
+			func Baz() int { 
+				i := 1       
+				if i > 1 {   
+					return i 
+				}            
+				             
+				//notest
+				             // *
+				if i > 2 {   // *
+					return i // *
+				}            // *
+				return 0     // *
 			}
 			`)
 }
@@ -205,8 +212,8 @@ func TestBool(t *testing.T) {
 			}
 			`,
 	}
-	for name, in := range tests {
-		test(t, name, in)
+	for name, source := range tests {
+		test(t, name, source)
 	}
 }
 
@@ -350,22 +357,111 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 	}
-	for name, in := range tests {
-		test(t, name, in)
+	for name, source := range tests {
+		test(t, name, source)
 	}
 }
 
-func test(t *testing.T, name, in string) {
-	cm := scanner.NewCodeMap()
+func TestPanic(t *testing.T) {
+	tests := map[string]string{
+		"panic": `package foo
+			
+			func Baz() error {
+				panic("") // *
+			}
+			`,
+	}
+	for name, source := range tests {
+		test(t, name, source)
+	}
+}
 
-	require.NoError(t, cm.ScanFile("foo.bar/baz", "/baz", "main.go", in), "Error in %s", name)
-	require.NoError(t, cm.CheckTypes(), "Error in %s", name)
-	require.NoError(t, cm.FindErrorReturns(), "Error in %s", name)
+func TestComments(t *testing.T) {
+	tests := map[string]string{
+		"scope": `package foo
+			
+			func Baz() int { 
+				i := 1       
+				if i > 1 {   
+					return i 
+				}            
+				             
+				//notest
+				             // *
+				if i > 2 {   // *
+					return i // *
+				}            // *
+				return 0     // *
+			}
+			`,
+		"scope if": `package foo
+			
+			func Baz(i int) int { 
+				if i > 2 {
+					//notest
+					return i // *
+				}
+				return 0
+			}
+			`,
+		"scope file": `package foo
+			
+			//notest
+			                      // *
+			func Baz(i int) int { // *
+				if i > 2 {        // *
+					return i      // *
+				}                 // *
+				return 0          // *
+			}                     // *
+			                      // *
+			func Foo(i int) int { // *
+				return 0          // *
+			}
+			`,
+	}
+	for name, source := range tests {
+		test(t, name, source)
+	}
+}
 
-	result := cm.Excludes()["/baz/main.go"]
+func test(t *testing.T, name, source string) {
 
-	for i, line := range strings.Split(in, "\n") {
-		expected := strings.HasSuffix(line, "// *")
+	env := vos.Mock()
+	b, err := builder.New(env, "ns")
+	if err != nil {
+		t.Fatalf("Error creating builder in %s: %s", name, err)
+	}
+	defer b.Cleanup()
+
+	ppath, pdir, err := b.Package("a", map[string]string{
+		"a.go": source,
+	})
+	if err != nil {
+		t.Fatalf("Error creating package in %s: %s", name, err)
+	}
+
+	paths := courtney.NewPathCache(env)
+
+	packages, err := courtney.ParseArgs(env, paths, ppath)
+	if err != nil {
+		t.Fatalf("Error parsing args in %s: %s", name, err)
+	}
+
+	cm := scanner.New(env, paths)
+
+	if err := cm.LoadProgram(packages); err != nil {
+		t.Fatalf("Error loading program in %s: %s", name, err)
+	}
+
+	if err := cm.ScanPackages(); err != nil {
+		t.Fatalf("Error scanning packages in %s: %s", name, err)
+	}
+
+	result := cm.Excludes[filepath.Join(pdir, "a.go")]
+
+	for i, line := range strings.Split(source, "\n") {
+		expected := strings.HasSuffix(line, "// *") || strings.HasSuffix(line, "//notest")
 		if result[i+1] != expected {
 			fmt.Printf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
 			t.Fail()

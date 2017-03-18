@@ -9,9 +9,7 @@ Courtney runs your tests and prepares your code coverage files.
 # What doesn't need to be tested?
 1) Blocks including a panic.  
 2) Blocks returning an error that has been tested to be non-nil*.
-3) Blocks containing the "//notest" comment.  
-4) Files containing the "//notest-file" comment.  
-5) Packages containing the "//notest-package" comment.  
+3) Blocks or files with a "//notest" comment.  
 
 # What courtney doesn't do
 Courtney doesn't mean your tests are complete. Courtney doesn't mean your tests 
