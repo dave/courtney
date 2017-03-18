@@ -377,35 +377,38 @@ func TestZeroValues(t *testing.T) {
 				b string
 			}
 			
-			func Foo() (iface, int, string, float32, strct, strct, error) {
+			func Foo() (iface, bool, int, string, float32, strct, strct, error) {
 				if _, err := fmt.Println(); err != nil {
-					return 1, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
+					return 1, false, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 1, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
+					return nil, true, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "a", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
+					return nil, false, 1, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 1.0, strct{0, ""}, strct{a: 0, b: ""}, err
+					return nil, false, 0, "a", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 0.0, strct{1, ""}, strct{a: 0, b: ""}, err
+					return nil, false, 0, "", 1.0, strct{0, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 0.0, strct{0, "a"}, strct{a: 0, b: ""}, err
+					return nil, false, 0, "", 0.0, strct{1, ""}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 0.0, strct{0, ""}, strct{a: 1, b: ""}, err
+					return nil, false, 0, "", 0.0, strct{0, "a"}, strct{a: 0, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: "a"}, err
+					return nil, false, 0, "", 0.0, strct{0, ""}, strct{a: 1, b: ""}, err
 				}
 				if _, err := fmt.Println(); err != nil {
-					return nil, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err // *
+					return nil, false, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: "a"}, err
 				}
-				return nil, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, nil
+				if _, err := fmt.Println(); err != nil {
+					return nil, false, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err // *
+				}
+				return nil, false, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, nil
 			}
 			`,
 	}
