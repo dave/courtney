@@ -1,7 +1,6 @@
 language: go
 go:
-    - 1.8
-go_import_path: github.com/dave/courtney/
+    - 1.x
 notificaitons:
   email:
     recipients: dave@brophy.uk
