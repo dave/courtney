@@ -18,16 +18,23 @@ import (
 func TestSingle(t *testing.T) {
 	test(t, "single",
 		`package foo
-			
-			func Baz() error { 
-				var f func(...interface{}) error
-				var a []interface{}
-				if f(a) != nil {   
-					return f(a) // *
-				}
-				return nil
+		
+		type Logger struct {
+			Enabled bool
+		}
+		func (l Logger) Print(i ...interface{}) {}
+		
+		func Foo() {
+		 	var logger Logger
+		 	var tokens []interface{}
+			if logger.Enabled {
+				// notest
+				for i, token := range tokens {        // *
+					logger.Print("[", i, "] ", token) // *
+				}                                     // *
 			}
-			`,
+		}
+		`,
 	)
 }
 
@@ -418,6 +425,24 @@ func TestGeneral(t *testing.T) {
 				return nil
 			}
 			`,
+		"complex comment block": `package foo
+			
+			type Logger struct {
+				Enabled bool
+			}
+			func (l Logger) Print(i ...interface{}) {}
+			
+			func Foo() {
+				var logger Logger
+				var tokens []interface{}
+				if logger.Enabled {
+					// notest
+					for i, token := range tokens {        // *
+						logger.Print("[", i, "] ", token) // *
+					}                                     // *
+				}
+			}
+			`,
 	}
 	for name, source := range tests {
 		test(t, name, source)
@@ -523,7 +548,9 @@ func test(t *testing.T, name, source string) {
 	result := cm.Excludes[filepath.Join(pdir, "a.go")]
 
 	for i, line := range strings.Split(source, "\n") {
-		expected := strings.HasSuffix(line, "// *") || strings.HasSuffix(line, "//notest")
+		expected := strings.HasSuffix(line, "// *") ||
+			strings.HasSuffix(line, "//notest") ||
+			strings.HasSuffix(line, "// notest")
 		if result[i+1] != expected {
 			fmt.Printf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
 			t.Fail()
