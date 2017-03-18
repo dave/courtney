@@ -4,26 +4,27 @@
 
 Courtney is a coverage tool for Go.
 
-Courtney runs your tests and prepares your code coverage files.
+Courtney runs your tests, merges and prepares your code coverage files.
 
-1. All packages are tested with coverage.    
+1. All packages are tested with coverage.  
 2. All the coverage files are merged.  
-3. Some parts of the code don't need to be tested. We disable these in the coverage files.  
-4. You should have 100% coverage! Optionally we enforce this.     
+3. Some code doesn't need to be tested. We exclude this from the coverage files.      
+4. Optionally we enforce that all code is covered.  
 
 # Excludes 
-What doesn't need to be tested?
-1. Blocks including a panic.  
-2. Blocks returning an error that has been tested to be non-nil. ([more details](#details))
-3. Blocks or files with a `// notest` comment.  
+What do we exclude from the coverage report? ([more details](#details))
+1. Blocks including a panic.
+2. Blocks or files with a `// notest` comment.  
+3. Blocks returning an error that has been tested to be non-nil.    
 
 # Limitations
-What courtney doesn't do:
-Courtney doesn't mean your tests are complete. Courtney doesn't mean your tests 
-are good. 100% test coverage doesn't mean all the edge cases are being explored.
+* Having test coverage doesn't mean your code is well tested.  
+* It's up to you to make sure that your tests explore the appropriate edge 
+  cases.  
+* However, not having test coverage is a good indicator that something isn't 
+  being tested.  
 
 # Benefits
-What courtney does do:
 Courtney makes your code coverage more meaningful. If you enforce 100% test 
 coverage, then any new functionality will have to be accompanied with tests.
 
@@ -41,14 +42,14 @@ go get -u github.com/dave/courtney/...
 # Usage
 Run the courtney command followed by a list of packages. You can use `.` for 
 the package in the current directory, and adding the `/...` suffix tests all 
-sub-packages recursively.
+sub-packages recursively. If no packages are provided, the default is `./...`.
 
-To test the current package recursively: 
+To test the current package, and all sub-packages recursively: 
 ```
-courtney ./...
+courtney
 ```
 
-To test `tester` recursively and `scanner`: 
+To test `tester`, it's sub-packages and the `scanner` package: 
 ```
 courtney github.com/dave/courtney/tester/... github.com/dave/courtney/scanner
 ```
@@ -59,7 +60,7 @@ overwrite a `coverage.out` file in the current directory.
 
 # Coverage
 To upload your coverage to [codecov.io](https://codecov.io/) via 
-[travis](https://travis-ci.org/), use the following `.travis.yml` file:
+[travis](https://travis-ci.org/), use a `.travis.yml` file something like this:
 
 ```yml
 language: go

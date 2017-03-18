@@ -36,16 +36,11 @@ type Tester struct {
 
 func (t *Tester) Test(packages []courtney.PackageSpec) error {
 
-	t.cover = filepath.Join(packages[0].Dir, ".coverage")
-
-	os.RemoveAll(t.cover)
-	defer os.RemoveAll(t.cover)
-
-	if _, err := os.Stat(t.cover); os.IsNotExist(err) {
-		if err := os.Mkdir(t.cover, 0777); err != nil {
-			return errors.Wrapf(err, "Error creating temporary coverage dir %s", t.cover)
-		}
+	var err error
+	if t.cover, err = ioutil.TempDir("", "coverage"); err != nil {
+		return errors.Wrap(err, "Error creating temporary coverage dir")
 	}
+	defer os.RemoveAll(t.cover)
 
 	for _, spec := range packages {
 		if err := t.processDir(spec.Dir, packages); err != nil {
@@ -57,7 +52,7 @@ func (t *Tester) Test(packages []courtney.PackageSpec) error {
 }
 
 func (t *Tester) Save() error {
-	if t.Results == nil {
+	if len(t.Results) == 0 {
 		fmt.Println("No results")
 		return nil
 	}

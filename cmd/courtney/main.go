@@ -17,6 +17,10 @@ func main() {
 	args := flag.Args()
 	env := vos.Os()
 
+	if len(args) == 0 {
+		args = []string{"./..."}
+	}
+
 	paths := courtney.NewPathCache(env)
 	packages, err := courtney.ParseArgs(env, paths, args...)
 	if err != nil {
