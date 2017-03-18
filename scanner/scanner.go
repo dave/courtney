@@ -128,11 +128,15 @@ func (p *PackageMap) inspectComment(f *ast.File, cg *ast.CommentGroup) {
 				return false
 			})
 
-			comment := p.fset.Position(cm.Pos())
-			start := p.fset.Position(scope.Pos())
-			end := p.fset.Position(scope.End())
-			for line := comment.Line; line < end.Line; line++ {
-				p.code.AddExclude(start.Filename, line)
+			// scope can be nil if the comment is in an empty file... in that
+			// case we don't need any excludes.
+			if scope != nil {
+				comment := p.fset.Position(cm.Pos())
+				start := p.fset.Position(scope.Pos())
+				end := p.fset.Position(scope.End())
+				for line := comment.Line; line < end.Line; line++ {
+					p.code.AddExclude(start.Filename, line)
+				}
 			}
 		}
 	}
