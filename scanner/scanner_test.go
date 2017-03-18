@@ -16,26 +16,70 @@ import (
 )
 
 func TestSingle(t *testing.T) {
-	test(t, "single",
-		`package foo
-		
-		type Logger struct {
-			Enabled bool
-		}
-		func (l Logger) Print(i ...interface{}) {}
-		
-		func Foo() {
-		 	var logger Logger
-		 	var tokens []interface{}
-			if logger.Enabled {
-				// notest
-				for i, token := range tokens {        // *
-					logger.Print("[", i, "] ", token) // *
-				}                                     // *
+	tests := map[string]string{
+		"single": `package a
+			
+			func a() (err error) {
+				if err != nil {
+					return // *
+				}
+				return
 			}
-		}
 		`,
-	)
+	}
+	test(t, tests)
+}
+
+func TestNamedParameters(t *testing.T) {
+	tests := map[string]string{
+		"named parameters simple": `package a
+			
+			func a() (err error) {
+				if err != nil {
+					return // *
+				}
+				return
+			}
+		`,
+		"named parameters 2": `package a
+			
+			func a() (i int, err error) {
+				i = 1
+				if err != nil {
+					return // *
+				}
+				return
+			}
+		`,
+		"named parameters must be last": `package a
+			
+			func a() (err error, i int) {
+				i = 1
+				if err != nil {
+					return
+				}
+				return
+			}
+		`,
+		"named parameters must be not nil": `package a
+			
+			func a() (err error) {
+				return
+			}
+		`,
+		"named parameters func lit": `package a
+			
+			func a() {
+				func () (err error) {
+					if err != nil {
+						return // *
+					}
+					return
+				}()
+			}
+		`,
+	}
+	test(t, tests)
 }
 
 func TestBool(t *testing.T) {
@@ -216,9 +260,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 	}
-	for name, source := range tests {
-		test(t, name, source)
-	}
+	test(t, tests)
 }
 
 func TestGeneral(t *testing.T) {
@@ -310,6 +352,20 @@ func TestGeneral(t *testing.T) {
 				return nil
 			}
 			`,
+		"only in if block": `package foo
+			
+			import "fmt"
+			
+			func Baz() error {
+				return fmt.Errorf("foo")
+			}
+			`,
+	}
+	test(t, tests)
+}
+
+func TestZeroValues(t *testing.T) {
+	tests := map[string]string{
 		"only return if all other return vars are zero": `package a
 			
 			import "fmt"
@@ -352,14 +408,12 @@ func TestGeneral(t *testing.T) {
 				return nil, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, nil
 			}
 			`,
-		"only if if block": `package foo
-			
-			import "fmt"
-			
-			func Baz() error {
-				return fmt.Errorf("foo")
-			}
-			`,
+	}
+	test(t, tests)
+}
+
+func TestSelectorExpressions(t *testing.T) {
+	tests := map[string]string{
 		"selector expression": `package foo
 			
 			func Baz() error { 
@@ -373,6 +427,12 @@ func TestGeneral(t *testing.T) {
 				return nil
 			}
 			`,
+	}
+	test(t, tests)
+}
+
+func TestFunctionExpressions(t *testing.T) {
+	tests := map[string]string{
 		"function expression": `package foo
 			
 			func Baz() error { 
@@ -425,28 +485,8 @@ func TestGeneral(t *testing.T) {
 				return nil
 			}
 			`,
-		"complex comment block": `package foo
-			
-			type Logger struct {
-				Enabled bool
-			}
-			func (l Logger) Print(i ...interface{}) {}
-			
-			func Foo() {
-				var logger Logger
-				var tokens []interface{}
-				if logger.Enabled {
-					// notest
-					for i, token := range tokens {        // *
-						logger.Print("[", i, "] ", token) // *
-					}                                     // *
-				}
-			}
-			`,
 	}
-	for name, source := range tests {
-		test(t, name, source)
-	}
+	test(t, tests)
 }
 
 func TestPanic(t *testing.T) {
@@ -458,9 +498,7 @@ func TestPanic(t *testing.T) {
 			}
 			`,
 	}
-	for name, source := range tests {
-		test(t, name, source)
-	}
+	test(t, tests)
 }
 
 func TestComments(t *testing.T) {
@@ -506,54 +544,73 @@ func TestComments(t *testing.T) {
 				return 0          // *
 			}
 			`,
+		"complex comments": `package foo
+			
+			type Logger struct {
+				Enabled bool
+			}
+			func (l Logger) Print(i ...interface{}) {}
+			
+			func Foo() {
+				var logger Logger
+				var tokens []interface{}
+				if logger.Enabled {
+					// notest
+					for i, token := range tokens {        // *
+						logger.Print("[", i, "] ", token) // *
+					}                                     // *
+				}
+			}
+			`,
 	}
-	for name, source := range tests {
-		test(t, name, source)
-	}
+	test(t, tests)
 }
 
-func test(t *testing.T, name, source string) {
+func test(t *testing.T, tests map[string]string) {
+	for name, source := range tests {
+		func() { // wrap in closure to ensure deferred cleanup after each test
+			env := vos.Mock()
+			b, err := builder.New(env, "ns")
+			if err != nil {
+				t.Fatalf("Error creating builder in %s: %s", name, err)
+			}
+			defer b.Cleanup()
 
-	env := vos.Mock()
-	b, err := builder.New(env, "ns")
-	if err != nil {
-		t.Fatalf("Error creating builder in %s: %s", name, err)
-	}
-	defer b.Cleanup()
+			ppath, pdir, err := b.Package("a", map[string]string{
+				"a.go": source,
+			})
+			if err != nil {
+				t.Fatalf("Error creating package in %s: %s", name, err)
+			}
 
-	ppath, pdir, err := b.Package("a", map[string]string{
-		"a.go": source,
-	})
-	if err != nil {
-		t.Fatalf("Error creating package in %s: %s", name, err)
-	}
+			paths := courtney.NewPathCache(env)
 
-	paths := courtney.NewPathCache(env)
+			packages, err := courtney.ParseArgs(env, paths, ppath)
+			if err != nil {
+				t.Fatalf("Error parsing args in %s: %s", name, err)
+			}
 
-	packages, err := courtney.ParseArgs(env, paths, ppath)
-	if err != nil {
-		t.Fatalf("Error parsing args in %s: %s", name, err)
-	}
+			cm := scanner.New(env, paths)
 
-	cm := scanner.New(env, paths)
+			if err := cm.LoadProgram(packages); err != nil {
+				t.Fatalf("Error loading program in %s: %s", name, err)
+			}
 
-	if err := cm.LoadProgram(packages); err != nil {
-		t.Fatalf("Error loading program in %s: %s", name, err)
-	}
+			if err := cm.ScanPackages(); err != nil {
+				t.Fatalf("Error scanning packages in %s: %s", name, err)
+			}
 
-	if err := cm.ScanPackages(); err != nil {
-		t.Fatalf("Error scanning packages in %s: %s", name, err)
-	}
+			result := cm.Excludes[filepath.Join(pdir, "a.go")]
 
-	result := cm.Excludes[filepath.Join(pdir, "a.go")]
-
-	for i, line := range strings.Split(source, "\n") {
-		expected := strings.HasSuffix(line, "// *") ||
-			strings.HasSuffix(line, "//notest") ||
-			strings.HasSuffix(line, "// notest")
-		if result[i+1] != expected {
-			fmt.Printf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
-			t.Fail()
-		}
+			for i, line := range strings.Split(source, "\n") {
+				expected := strings.HasSuffix(line, "// *") ||
+					strings.HasSuffix(line, "//notest") ||
+					strings.HasSuffix(line, "// notest")
+				if result[i+1] != expected {
+					fmt.Printf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
+					t.Fail()
+				}
+			}
+		}()
 	}
 }
