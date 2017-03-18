@@ -101,7 +101,9 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 					break
 				}
 			}
-			if !excluded {
+			if !excluded || b.Count > 0 {
+				// include blocks that are not excluded
+				// also include any blocks that have coverage
 				blocks = append(blocks, b)
 			}
 		}
