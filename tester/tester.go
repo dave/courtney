@@ -53,10 +53,6 @@ func (t *Tester) Test(packages []courtney.PackageSpec) error {
 		}
 	}
 
-	//if scan {
-	//	t.processExcludes()
-	//}
-
 	return nil
 }
 
@@ -139,11 +135,6 @@ func (t *Tester) processDir(dir string, all []courtney.PackageSpec) error {
 	}
 
 	os.Chdir(dir)
-	//fmt.Println("dir:", dir)
-	//fi, _ := ioutil.ReadDir(dir)
-	//for _, f := range fi {
-	//	fmt.Println(f.Name())
-	//}
 
 	var allpkgs []string
 	for _, s := range all {
@@ -160,8 +151,6 @@ func (t *Tester) processDir(dir string, all []courtney.PackageSpec) error {
 	if err != nil {
 		return errors.Wrapf(err, "Error executing test \nOutput:[\n%s]\n", b)
 	}
-	//by, _ := ioutil.ReadFile(coverageFilepath)
-	//fmt.Println("coverage:", string(by))
 	return t.processCoverageFile(coverageFilepath)
 }
 
