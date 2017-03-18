@@ -16,22 +16,19 @@ import (
 )
 
 func TestSingle(t *testing.T) {
-	test(t, "single", `package foo
+	test(t, "single",
+		`package foo
 			
-			func Baz() int { 
-				i := 1       
-				if i > 1 {   
-					return i 
-				}            
-				             
-				//notest
-				             // *
-				if i > 2 {   // *
-					return i // *
-				}            // *
-				return 0     // *
+			func Baz() error { 
+				var f func(...interface{}) error
+				var a []interface{}
+				if f(a) != nil {   
+					return f(a) // *
+				}
+				return nil
 			}
-			`)
+			`,
+	)
 }
 
 func TestBool(t *testing.T) {
@@ -354,6 +351,71 @@ func TestGeneral(t *testing.T) {
 			
 			func Baz() error {
 				return fmt.Errorf("foo")
+			}
+			`,
+		"selector expression": `package foo
+			
+			func Baz() error { 
+				type T struct {
+					Err error
+				}
+				var b T
+				if b.Err != nil {   
+					return b.Err // *
+				}
+				return nil
+			}
+			`,
+		"function expression": `package foo
+			
+			func Baz() error { 
+				var f func(int) error
+				if f(5) != nil {   
+					return f(5) // *
+				}
+				return nil
+			}
+			`,
+		"function expression params": `package foo
+			
+			func Baz() error { 
+				var f func(int) error
+				if f(4) != nil {   
+					return f(5)
+				}
+				return nil
+			}
+			`,
+		"function expression params 2": `package foo
+			
+			func Baz() error { 
+				var f func(...int) error
+				if f(4) != nil {   
+					return f(4, 4)
+				}
+				return nil
+			}
+			`,
+		"function expression elipsis": `package foo
+			
+			func Baz() error { 
+				var f func(...interface{}) error
+				var a []interface{}
+				if f(a) != nil {   
+					return f(a...)
+				}
+				return nil
+			}
+			`,
+		"function expression elipsis 2": `package foo
+			
+			func Baz() error { 
+				var f func(...interface{}) error
+				var a []interface{}
+				if f(a) != nil {   
+					return f(a) // *
+				}
+				return nil
 			}
 			`,
 	}

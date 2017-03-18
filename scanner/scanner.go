@@ -5,7 +5,6 @@ import (
 	"go/build"
 	"go/constant"
 	"go/token"
-	"go/types"
 
 	"go/parser"
 
@@ -192,47 +191,44 @@ func (p *PackageMap) processResults(s *brenda.Solver, block *ast.BlockStmt) {
 		if !match.Match && !match.Inverse {
 			continue
 		}
-		found, op, ident := p.isErrorComparison(expr)
+		found, op, expr := p.isErrorComparison(expr)
 		if !found {
 			continue
 		}
-		o := p.info.Uses[ident]
 		if op == token.NEQ && match.Match || op == token.EQL && match.Inverse {
-			ast.Inspect(block, p.inspectNodeForReturn(o))
-			ast.Inspect(block, p.inspectNodeForWrap(block, o))
+			ast.Inspect(block, p.inspectNodeForReturn(expr))
+			ast.Inspect(block, p.inspectNodeForWrap(block, expr))
 		}
 	}
 }
 
-func (p *PackageMap) isErrorComparison(e ast.Expr) (found bool, sign token.Token, ident *ast.Ident) {
+func (p *PackageMap) isErrorComparison(e ast.Expr) (found bool, sign token.Token, expr ast.Expr) {
 	if b, ok := e.(*ast.BinaryExpr); ok {
 		if b.Op != token.NEQ && b.Op != token.EQL {
 			return
 		}
-		_, xId := b.X.(*ast.Ident)
-		xErr := xId && p.isError(b.X)
+		xErr := p.isError(b.X)
 		yNil := p.isNil(b.Y)
 		if xErr && yNil {
-			return true, b.Op, b.X.(*ast.Ident)
+			return true, b.Op, b.X
 		}
-		_, yId := b.Y.(*ast.Ident)
-		yErr := yId && p.isError(b.Y)
+		yErr := p.isError(b.Y)
 		xNil := p.isNil(b.X)
 		if yErr && xNil {
-			return true, b.Op, b.Y.(*ast.Ident)
+			return true, b.Op, b.Y
 		}
 	}
 	return
 }
 
-func (p *PackageMap) inspectNodeForReturn(o types.Object) func(node ast.Node) bool {
+func (p *PackageMap) inspectNodeForReturn(search ast.Expr) func(node ast.Node) bool {
 	return func(node ast.Node) bool {
 		if node == nil {
 			return true
 		}
 		switch n := node.(type) {
 		case *ast.ReturnStmt:
-			if p.isErrorReturn(o, n) {
+			if p.isErrorReturn(n, search) {
 				pos := p.fset.Position(n.Pos())
 				p.code.AddExclude(pos.Filename, pos.Line)
 			}
@@ -241,7 +237,7 @@ func (p *PackageMap) inspectNodeForReturn(o types.Object) func(node ast.Node) bo
 	}
 }
 
-func (p *PackageMap) inspectNodeForWrap(block *ast.BlockStmt, inputErrorObject types.Object) func(node ast.Node) bool {
+func (p *PackageMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func(node ast.Node) bool {
 	return func(node ast.Node) bool {
 		if node == nil {
 			return true
@@ -269,43 +265,27 @@ func (p *PackageMap) inspectNodeForWrap(block *ast.BlockStmt, inputErrorObject t
 			if len(spec.Names) != 1 || len(spec.Values) != 1 {
 				return true
 			}
-			id := spec.Names[0]
-			newErrorObject, ok := p.info.Defs[id]
+			newSearch := spec.Names[0]
 
-			if p.isErrorCall(spec.Values[0], inputErrorObject) {
-				ast.Inspect(block, p.inspectNodeForReturn(newErrorObject))
+			if p.isErrorCall(spec.Values[0], search) {
+				ast.Inspect(block, p.inspectNodeForReturn(newSearch))
 			}
 
 		case *ast.AssignStmt:
 			if len(n.Lhs) != 1 || len(n.Rhs) != 1 {
 				return true
 			}
-			id, ok := n.Lhs[0].(*ast.Ident)
-			if !ok {
-				return true
-			}
-			var newErrorObject types.Object
-			switch n.Tok {
-			case token.DEFINE:
-				// covers the case:
-				// e := foo()
-				newErrorObject = p.info.Defs[id]
-			case token.ASSIGN:
-				// covers the case:
-				// var e error
-				// e = foo()
-				newErrorObject = p.info.Uses[id]
-			}
+			newSearch := n.Lhs[0]
 
-			if p.isErrorCall(n.Rhs[0], inputErrorObject) {
-				ast.Inspect(block, p.inspectNodeForReturn(newErrorObject))
+			if p.isErrorCall(n.Rhs[0], search) {
+				ast.Inspect(block, p.inspectNodeForReturn(newSearch))
 			}
 		}
 		return true
 	}
 }
 
-func (p *PackageMap) isErrorCall(expr ast.Expr, inputErrorObject types.Object) bool {
+func (p *PackageMap) isErrorCall(expr, search ast.Expr) bool {
 	n, ok := expr.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -314,44 +294,26 @@ func (p *PackageMap) isErrorCall(expr ast.Expr, inputErrorObject types.Object) b
 		return false
 	}
 	for _, arg := range n.Args {
-		if ident, ok := arg.(*ast.Ident); ok {
-			if p.info.Uses[ident] == inputErrorObject {
-				return true
-			}
+		if p.matchExpr(arg, search) {
+			return true
 		}
 	}
 	return false
 }
 
-func (p *PackageMap) isErrorReturn(o types.Object, r *ast.ReturnStmt) bool {
+func (p *PackageMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
 	if len(r.Results) == 0 {
 		return false
 	}
 
 	last := r.Results[len(r.Results)-1]
 
+	// check the last result is an error
 	if !p.isError(last) {
 		return false
 	}
 
-	switch n := last.(type) {
-	case *ast.Ident:
-		// covers the case:
-		// return err
-		if o != p.info.Uses[n] {
-			return false
-		}
-	case *ast.CallExpr:
-		// covers the case:
-		// var wrap func(error) error
-		// return wrap(err)
-		if !p.isErrorCall(n, o) {
-			return false
-		}
-	default:
-		return false
-	}
-
+	// check all the other results are nil or zero
 	for i, v := range r.Results {
 		if i == len(r.Results)-1 {
 			// ignore the last item
@@ -362,6 +324,144 @@ func (p *PackageMap) isErrorReturn(o types.Object, r *ast.ReturnStmt) bool {
 		}
 	}
 
+	return p.matchExpr(last, search) || p.isErrorCall(last, search)
+}
+
+func (p *PackageMap) matchExpr(a, b ast.Expr) bool {
+	// are the expressions equal?
+	switch at := a.(type) {
+	case nil:
+		return b == nil
+	case *ast.Ident:
+		if bt, ok := b.(*ast.Ident); ok {
+			usea, isusea := p.info.Uses[at]
+			useb, isuseb := p.info.Uses[bt]
+			defa, isdefa := p.info.Defs[at]
+			defb, isdefb := p.info.Defs[bt]
+			switch {
+			case isusea && isuseb && usea == useb,
+				isdefa && isdefb && defa == defb,
+				isdefa && isuseb && defa == useb,
+				isusea && isdefb && usea == defb:
+				return true
+			}
+			return false
+		}
+		return false
+	case *ast.SelectorExpr:
+		if bt, ok := b.(*ast.SelectorExpr); ok {
+			return p.matchExpr(at.Sel, bt.Sel) &&
+				p.matchExpr(at.X, bt.X)
+		}
+		return false
+	case *ast.CallExpr:
+		if bt, ok := b.(*ast.CallExpr); ok {
+			return p.matchExpr(at.Fun, bt.Fun) &&
+				p.matchExprs(at.Args, bt.Args) &&
+				((at.Ellipsis == token.NoPos) == (bt.Ellipsis == token.NoPos))
+		}
+		return false
+	case *ast.BasicLit:
+		if bt, ok := b.(*ast.BasicLit); ok {
+			return at.Kind == bt.Kind &&
+				at.Value == bt.Value
+		}
+	case *ast.ParenExpr:
+		if bt, ok := b.(*ast.ParenExpr); ok {
+			return p.matchExpr(at.X, bt.X)
+		}
+		return false
+	case *ast.IndexExpr:
+		if bt, ok := b.(*ast.IndexExpr); ok {
+			return p.matchExpr(at.X, bt.X) &&
+				p.matchExpr(at.Index, bt.Index)
+		}
+		return false
+	case *ast.SliceExpr:
+		if bt, ok := b.(*ast.SliceExpr); ok {
+			return p.matchExpr(at.X, bt.X) &&
+				p.matchExpr(at.High, bt.High) &&
+				p.matchExpr(at.Low, bt.Low) &&
+				p.matchExpr(at.Max, bt.Max) &&
+				at.Slice3 == bt.Slice3
+		}
+		return false
+	case *ast.TypeAssertExpr:
+		if bt, ok := b.(*ast.TypeAssertExpr); ok {
+			return p.matchExpr(at.X, bt.X) &&
+				p.matchExpr(at.Type, bt.Type)
+		}
+		return false
+	case *ast.StarExpr:
+		if bt, ok := b.(*ast.StarExpr); ok {
+			return p.matchExpr(at.X, bt.X)
+		}
+		return false
+	case *ast.UnaryExpr:
+		if bt, ok := b.(*ast.UnaryExpr); ok {
+			return p.matchExpr(at.X, bt.X) &&
+				at.Op == bt.Op
+		}
+		return false
+	case *ast.BinaryExpr:
+		if bt, ok := b.(*ast.BinaryExpr); ok {
+			return p.matchExpr(at.X, bt.X) &&
+				p.matchExpr(at.Y, bt.Y) &&
+				at.Op == bt.Op
+		}
+		return false
+	case *ast.Ellipsis:
+		if bt, ok := b.(*ast.Ellipsis); ok {
+			return p.matchExpr(at.Elt, bt.Elt)
+		}
+		return false
+	case *ast.CompositeLit:
+		if bt, ok := b.(*ast.CompositeLit); ok {
+			return p.matchExpr(at.Type, bt.Type) &&
+				p.matchExprs(at.Elts, bt.Elts)
+		}
+		return false
+	case *ast.KeyValueExpr:
+		if bt, ok := b.(*ast.KeyValueExpr); ok {
+			return p.matchExpr(at.Key, bt.Key) &&
+				p.matchExpr(at.Value, bt.Value)
+		}
+		return false
+	case *ast.ArrayType:
+		if bt, ok := b.(*ast.ArrayType); ok {
+			return p.matchExpr(at.Elt, bt.Elt) &&
+				p.matchExpr(at.Len, bt.Len)
+		}
+		return false
+	case *ast.MapType:
+		if bt, ok := b.(*ast.MapType); ok {
+			return p.matchExpr(at.Key, bt.Key) &&
+				p.matchExpr(at.Value, bt.Value)
+		}
+		return false
+	case *ast.ChanType:
+		if bt, ok := b.(*ast.ChanType); ok {
+			return p.matchExpr(at.Value, bt.Value) &&
+				at.Dir == bt.Dir
+		}
+		return false
+	case *ast.BadExpr, *ast.FuncLit, *ast.StructType, *ast.FuncType, *ast.InterfaceType:
+		// can't be compared
+		return false
+	}
+	return false
+}
+
+func (p *PackageMap) matchExprs(a, b []ast.Expr) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, ae := range a {
+		be := b[i]
+		if !p.matchExpr(ae, be) {
+			return false
+		}
+	}
 	return true
 }
 
