@@ -9,9 +9,10 @@ import (
 
 	"path/filepath"
 
-	"github.com/dave/courtney"
 	"github.com/dave/courtney/scanner"
+	"github.com/dave/courtney/shared"
 	"github.com/dave/patsy/builder"
+	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 )
 
@@ -19,11 +20,32 @@ func TestSingle(t *testing.T) {
 	tests := map[string]string{
 		"single": `package a
 			
-			func a() (err error) {
-				if err != nil {
-					return // *
+			func a() error {
+				var err error
+				switch {
+				case err == nil:
+					return err
+				default:
+					return err // *
 				}
-				return
+				return nil
+			}
+		`,
+	}
+	test(t, tests)
+}
+
+func TestSwitchCase(t *testing.T) {
+	tests := map[string]string{
+		"simple switch": `package a
+			
+			func a() error {
+				var err error
+				switch {
+				case err != nil:
+					return err // *
+				}
+				return nil
 			}
 		`,
 	}
@@ -600,9 +622,9 @@ func test(t *testing.T, tests map[string]string) {
 				t.Fatalf("Error creating package in %s: %s", name, err)
 			}
 
-			paths := courtney.NewPathCache(env)
+			paths := pathcache.New(env)
 
-			packages, err := courtney.ParseArgs(env, paths, ppath)
+			packages, err := shared.ParseArgs(env, paths, ppath)
 			if err != nil {
 				t.Fatalf("Error parsing args in %s: %s", name, err)
 			}
@@ -614,6 +636,7 @@ func test(t *testing.T, tests map[string]string) {
 			}
 
 			if err := cm.ScanPackages(); err != nil {
+				fmt.Printf("%+v\n", err)
 				t.Fatalf("Error scanning packages in %s: %s", name, err)
 			}
 

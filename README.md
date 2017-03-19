@@ -4,18 +4,18 @@
 
 Courtney is a coverage tool for Go.
 
-Courtney runs your tests, merges and prepares your code coverage files.
+Courtney runs your tests, merges and prepares the coverage files.
 
-1. All packages are tested with coverage.  
-2. All the coverage files are merged.  
-3. Some code doesn't need to be tested. We exclude this from the coverage files.      
-4. Optionally we enforce that all code is covered.  
+1. Packages are tested with coverage.  
+2. Coverage files are merged.  
+3. Some code doesn't need to be tested. This is excluded from the coverage files.      
+4. Optionally we enforce that all remaining code is covered.  
 
 # Excludes 
 What do we exclude from the coverage report? ([more details](#details))
-1. Blocks including a panic.
+1. Blocks returning an error that has been tested non-nil.  
 2. Blocks or files with a `// notest` comment.  
-3. Blocks returning an error that has been tested to be non-nil.    
+3. Blocks including a panic.  
 
 # Limitations
 * Having test coverage doesn't mean your code is well tested.  
@@ -36,7 +36,7 @@ A few more rules:
 
 # Install
 ```
-go get -u github.com/dave/courtney/... 
+go get -u github.com/dave/courtney 
 ```
 
 # Usage
@@ -71,10 +71,10 @@ notificaitons:
     recipients: <your-email>
     on_failure: always
 install:
-  - go get -u github.com/dave/courtney/...
+  - go get -u github.com/dave/courtney
   - go get -t -v ./...
 script:
-  - courtney ./...
+  - courtney
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 ```

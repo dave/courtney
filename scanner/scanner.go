@@ -9,7 +9,8 @@ import (
 	"go/parser"
 
 	"github.com/dave/brenda"
-	"github.com/dave/courtney"
+	"github.com/dave/courtney/shared"
+	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
@@ -19,7 +20,7 @@ type CodeMap struct {
 	env      vos.Env
 	prog     *loader.Program
 	Excludes map[string]map[int]bool
-	paths    *courtney.PathCache
+	paths    *pathcache.PathCache
 }
 
 type PackageMap struct {
@@ -38,7 +39,7 @@ type packageId struct {
 	name string
 }
 
-func New(env vos.Env, paths *courtney.PathCache) *CodeMap {
+func New(env vos.Env, paths *pathcache.PathCache) *CodeMap {
 	return &CodeMap{
 		env:      env,
 		Excludes: make(map[string]map[int]bool),
@@ -53,7 +54,7 @@ func (c *CodeMap) AddExclude(fpath string, line int) {
 	c.Excludes[fpath][line] = true
 }
 
-func (c *CodeMap) LoadProgram(packages []courtney.PackageSpec) error {
+func (c *CodeMap) LoadProgram(packages []shared.PackageSpec) error {
 	ctxt := build.Default
 	ctxt.GOPATH = c.env.Getenv("GOPATH")
 	wd, err := c.env.Getwd()
@@ -184,8 +185,67 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 		if err := f.inspectIf(n); err != nil {
 			return false, err
 		}
+	case *ast.SwitchStmt:
+		if n.Tag != nil {
+			// we are only concerned with switch statements with no tag
+			// expression e.g. switch { ... }
+			return true, nil
+		}
+		var falseExpr []ast.Expr
+		var defaultClause *ast.CaseClause
+		for _, s := range n.Body.List {
+			cc := s.(*ast.CaseClause)
+			if cc.List == nil {
+				// save the default clause until the end
+				defaultClause = cc
+				continue
+			}
+			if err := f.inspectCase(cc, falseExpr...); err != nil {
+				return false, err
+			}
+			falseExpr = append(falseExpr, f.boolOr(cc.List))
+		}
+		if defaultClause != nil {
+			if err := f.inspectCase(defaultClause, falseExpr...); err != nil {
+				return false, err
+			}
+		}
 	}
 	return true, nil
+}
+
+func a() error {
+	var err error
+	switch {
+	case err == nil:
+		return err
+	default:
+		return err
+	}
+	return nil
+}
+
+func (f *FileMap) inspectCase(stmt *ast.CaseClause, falseExpr ...ast.Expr) error {
+	s := brenda.NewSolver(f.fset, f.info.Uses, f.boolOr(stmt.List), falseExpr...)
+	if err := s.SolveTrue(); err != nil {
+		return err
+	}
+	f.processResults(s, &ast.BlockStmt{List: stmt.Body})
+	return nil
+}
+
+func (f *FileMap) boolOr(list []ast.Expr) ast.Expr {
+	if len(list) == 0 {
+		return nil
+	}
+	if len(list) == 1 {
+		return list[0]
+	}
+	current := list[0]
+	for i := 1; i < len(list); i++ {
+		current = &ast.BinaryExpr{X: current, Y: list[i], Op: token.LOR}
+	}
+	return current
 }
 
 func (f *FileMap) inspectIf(stmt *ast.IfStmt, falseExpr ...ast.Expr) error {

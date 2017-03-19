@@ -13,10 +13,11 @@ import (
 
 	"regexp"
 
-	"github.com/dave/courtney"
+	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
+	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 )
 
@@ -143,11 +144,11 @@ func TestNew(t *testing.T) {
 				}
 			}
 
-			paths := courtney.NewPathCache(env)
+			paths := pathcache.New(env)
 
 			ts := tester.New(env, paths)
 
-			packages, err := courtney.ParseArgs(env, paths, test.args...)
+			packages, err := shared.ParseArgs(env, paths, test.args...)
 			if err != nil {
 				t.Fatalf("Error in '%s' parsing args: %s", name, err)
 			}

@@ -10,14 +10,15 @@ import (
 
 	"crypto/md5"
 
-	"github.com/dave/courtney"
+	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester/merge"
+	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/cover"
 )
 
-func New(env vos.Env, paths *courtney.PathCache) *Tester {
+func New(env vos.Env, paths *pathcache.PathCache) *Tester {
 	t := &Tester{
 		env:   env,
 		paths: paths,
@@ -31,10 +32,10 @@ type Tester struct {
 	cover      string
 	Results    []*cover.Profile
 	previousWd string
-	paths      *courtney.PathCache
+	paths      *pathcache.PathCache
 }
 
-func (t *Tester) Test(packages []courtney.PackageSpec) error {
+func (t *Tester) Test(packages []shared.PackageSpec) error {
 
 	var err error
 	if t.cover, err = ioutil.TempDir("", "coverage"); err != nil {
@@ -109,7 +110,7 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 	return nil
 }
 
-func (t *Tester) processDir(dir string, all []courtney.PackageSpec) error {
+func (t *Tester) processDir(dir string, all []shared.PackageSpec) error {
 
 	coverageFilename := fmt.Sprintf("%x", md5.Sum([]byte(dir))) + ".out"
 	coverageFilepath := filepath.Join(t.cover, coverageFilename)
