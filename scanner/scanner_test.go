@@ -23,10 +23,10 @@ func TestSingle(t *testing.T) {
 			func a() error {
 				var err error
 				switch {
-				case err == nil:
-					return err
 				default:
 					return err // *
+				case err == nil:
+					return err
 				}
 				return nil
 			}
@@ -46,6 +46,23 @@ func TestSwitchCase(t *testing.T) {
 					return err // *
 				}
 				return nil
+			}
+		`,
+		"complex switch": `package a
+		
+			func foo() error {
+				var err error
+				var b, c bool
+				var d int
+				switch {
+				case err == nil && (b && d > 0) || c:
+					return err
+				case d <= 0 || c:
+					return err
+				case b:
+					return err // *
+				}
+				return err
 			}
 		`,
 	}
@@ -281,6 +298,22 @@ func TestBool(t *testing.T) {
 				return nil
 			}
 			`,
+		"complex": `package a
+		
+			func foo() error {
+				var err error
+				var b, c bool
+				var d int
+				if err == nil && (b && d > 0) || c {
+					return err
+				} else if d <= 0 || c {
+					return err
+				} else if b {
+					return err // *
+				}
+				return err
+			}
+		`,
 	}
 	test(t, tests)
 }

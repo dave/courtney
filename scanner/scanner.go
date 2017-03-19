@@ -185,45 +185,33 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 		if err := f.inspectIf(n); err != nil {
 			return false, err
 		}
-		/*
-			case *ast.SwitchStmt:
-				if n.Tag != nil {
-					// we are only concerned with switch statements with no tag
-					// expression e.g. switch { ... }
-					return true, nil
-				}
-				var falseExpr []ast.Expr
-				var defaultClause *ast.CaseClause
-				for _, s := range n.Body.List {
-					cc := s.(*ast.CaseClause)
-					if cc.List == nil {
-						// save the default clause until the end
-						defaultClause = cc
-						continue
-					}
-					if err := f.inspectCase(cc, falseExpr...); err != nil {
-						return false, err
-					}
-					falseExpr = append(falseExpr, f.boolOr(cc.List))
-				}
-				if defaultClause != nil {
-					if err := f.inspectCase(defaultClause, falseExpr...); err != nil {
-						return false, err
-					}
-				}*/
+	case *ast.SwitchStmt:
+		if n.Tag != nil {
+			// we are only concerned with switch statements with no tag
+			// expression e.g. switch { ... }
+			return true, nil
+		}
+		var falseExpr []ast.Expr
+		var defaultClause *ast.CaseClause
+		for _, s := range n.Body.List {
+			cc := s.(*ast.CaseClause)
+			if cc.List == nil {
+				// save the default clause until the end
+				defaultClause = cc
+				continue
+			}
+			if err := f.inspectCase(cc, falseExpr...); err != nil {
+				return false, err
+			}
+			falseExpr = append(falseExpr, f.boolOr(cc.List))
+		}
+		if defaultClause != nil {
+			if err := f.inspectCase(defaultClause, falseExpr...); err != nil {
+				return false, err
+			}
+		}
 	}
 	return true, nil
-}
-
-func a() error {
-	var err error
-	switch {
-	case err == nil:
-		return err
-	default:
-		return err
-	}
-	return nil
 }
 
 func (f *FileMap) inspectCase(stmt *ast.CaseClause, falseExpr ...ast.Expr) error {
