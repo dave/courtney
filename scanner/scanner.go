@@ -101,13 +101,13 @@ func (p *PackageMap) ScanPackage() error {
 	return nil
 }
 
-func (fm *FileMap) FindExcludes() error {
+func (f *FileMap) FindExcludes() error {
 	var err error
-	ast.Inspect(fm.file, func(node ast.Node) bool {
+	ast.Inspect(f.file, func(node ast.Node) bool {
 		if err != nil {
 			return false
 		}
-		if b, inner := fm.inspectNode(node); inner != nil {
+		if b, inner := f.inspectNode(node); inner != nil {
 			err = inner
 			return false
 		} else {
@@ -117,8 +117,8 @@ func (fm *FileMap) FindExcludes() error {
 	if err != nil {
 		return err
 	}
-	for _, cg := range fm.file.Comments {
-		fm.inspectComment(cg)
+	for _, cg := range f.file.Comments {
+		f.inspectComment(cg)
 	}
 	return nil
 }
@@ -483,20 +483,17 @@ func (f *FileMap) matchExpr(a, b ast.Expr) bool {
 				at.Value == bt.Value
 		}
 	case *ast.ParenExpr:
-		// notest
 		if bt, ok := b.(*ast.ParenExpr); ok {
 			return f.matchExpr(at.X, bt.X)
 		}
 		return false
 	case *ast.IndexExpr:
-		// notest
 		if bt, ok := b.(*ast.IndexExpr); ok {
 			return f.matchExpr(at.X, bt.X) &&
 				f.matchExpr(at.Index, bt.Index)
 		}
 		return false
 	case *ast.SliceExpr:
-		// notest
 		if bt, ok := b.(*ast.SliceExpr); ok {
 			return f.matchExpr(at.X, bt.X) &&
 				f.matchExpr(at.High, bt.High) &&
@@ -506,27 +503,23 @@ func (f *FileMap) matchExpr(a, b ast.Expr) bool {
 		}
 		return false
 	case *ast.TypeAssertExpr:
-		// notest
 		if bt, ok := b.(*ast.TypeAssertExpr); ok {
 			return f.matchExpr(at.X, bt.X) &&
 				f.matchExpr(at.Type, bt.Type)
 		}
 		return false
 	case *ast.StarExpr:
-		// notest
 		if bt, ok := b.(*ast.StarExpr); ok {
 			return f.matchExpr(at.X, bt.X)
 		}
 		return false
 	case *ast.UnaryExpr:
-		// notest
 		if bt, ok := b.(*ast.UnaryExpr); ok {
 			return f.matchExpr(at.X, bt.X) &&
 				at.Op == bt.Op
 		}
 		return false
 	case *ast.BinaryExpr:
-		// notest
 		if bt, ok := b.(*ast.BinaryExpr); ok {
 			return f.matchExpr(at.X, bt.X) &&
 				f.matchExpr(at.Y, bt.Y) &&
@@ -534,41 +527,35 @@ func (f *FileMap) matchExpr(a, b ast.Expr) bool {
 		}
 		return false
 	case *ast.Ellipsis:
-		// notest
 		if bt, ok := b.(*ast.Ellipsis); ok {
 			return f.matchExpr(at.Elt, bt.Elt)
 		}
 		return false
 	case *ast.CompositeLit:
-		// notest
 		if bt, ok := b.(*ast.CompositeLit); ok {
 			return f.matchExpr(at.Type, bt.Type) &&
 				f.matchExprs(at.Elts, bt.Elts)
 		}
 		return false
 	case *ast.KeyValueExpr:
-		// notest
 		if bt, ok := b.(*ast.KeyValueExpr); ok {
 			return f.matchExpr(at.Key, bt.Key) &&
 				f.matchExpr(at.Value, bt.Value)
 		}
 		return false
 	case *ast.ArrayType:
-		// notest
 		if bt, ok := b.(*ast.ArrayType); ok {
 			return f.matchExpr(at.Elt, bt.Elt) &&
 				f.matchExpr(at.Len, bt.Len)
 		}
 		return false
 	case *ast.MapType:
-		// notest
 		if bt, ok := b.(*ast.MapType); ok {
 			return f.matchExpr(at.Key, bt.Key) &&
 				f.matchExpr(at.Value, bt.Value)
 		}
 		return false
 	case *ast.ChanType:
-		// notest
 		if bt, ok := b.(*ast.ChanType); ok {
 			return f.matchExpr(at.Value, bt.Value) &&
 				at.Dir == bt.Dir
@@ -576,7 +563,6 @@ func (f *FileMap) matchExpr(a, b ast.Expr) bool {
 		return false
 	case *ast.BadExpr, *ast.FuncLit, *ast.StructType, *ast.FuncType, *ast.InterfaceType:
 		// can't be compared
-		// notest
 		return false
 	}
 	return false
