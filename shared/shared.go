@@ -6,7 +6,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/dave/patsy/pathcache"
+	"github.com/dave/patsy"
 	"github.com/dave/patsy/vos"
 )
 
@@ -15,7 +15,7 @@ type PackageSpec struct {
 	Path string
 }
 
-func ParseArgs(env vos.Env, paths *pathcache.PathCache, args ...string) ([]PackageSpec, error) {
+func ParseArgs(env vos.Env, paths *patsy.Cache, args ...string) ([]PackageSpec, error) {
 	packages := map[string]string{}
 	for _, ppath := range args {
 		var dir string
@@ -33,13 +33,13 @@ func ParseArgs(env vos.Env, paths *pathcache.PathCache, args ...string) ([]Packa
 			if err != nil {
 				return nil, err
 			}
-			ppath, err = paths.GetPackageFromDir(dir)
+			ppath, err = paths.Path(dir)
 			if err != nil {
 				return nil, err
 			}
 		} else {
 			var err error
-			dir, err = paths.GetDirFromPackage(ppath)
+			dir, err = paths.Dir(ppath)
 			if err != nil {
 				return nil, err
 			}
@@ -60,7 +60,7 @@ func ParseArgs(env vos.Env, paths *pathcache.PathCache, args ...string) ([]Packa
 				return nil
 			})
 			for dir := range dirs {
-				ppath, err := paths.GetPackageFromDir(dir)
+				ppath, err := paths.Path(dir)
 				if err != nil {
 					return nil, err
 				}

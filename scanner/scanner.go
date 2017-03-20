@@ -10,7 +10,7 @@ import (
 
 	"github.com/dave/brenda"
 	"github.com/dave/courtney/shared"
-	"github.com/dave/patsy/pathcache"
+	"github.com/dave/patsy"
 	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
@@ -20,7 +20,7 @@ type CodeMap struct {
 	env      vos.Env
 	prog     *loader.Program
 	Excludes map[string]map[int]bool
-	paths    *pathcache.PathCache
+	paths    *patsy.Cache
 }
 
 type PackageMap struct {
@@ -39,7 +39,7 @@ type packageId struct {
 	name string
 }
 
-func New(env vos.Env, paths *pathcache.PathCache) *CodeMap {
+func New(env vos.Env, paths *patsy.Cache) *CodeMap {
 	return &CodeMap{
 		env:      env,
 		Excludes: make(map[string]map[int]bool),

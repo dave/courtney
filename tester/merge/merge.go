@@ -9,6 +9,32 @@ import (
 	"golang.org/x/tools/cover"
 )
 
+func AddProfile(profiles []*cover.Profile, p *cover.Profile) ([]*cover.Profile, error) {
+	i := sort.Search(len(profiles), func(i int) bool { return profiles[i].FileName >= p.FileName })
+	if i < len(profiles) && profiles[i].FileName == p.FileName {
+		if err := mergeProfiles(profiles[i], p); err != nil {
+			return nil, err
+		}
+	} else {
+		profiles = append(profiles, nil)
+		copy(profiles[i+1:], profiles[i:])
+		profiles[i] = p
+	}
+	return profiles, nil
+}
+
+func DumpProfiles(profiles []*cover.Profile, out io.Writer) {
+	if len(profiles) == 0 {
+		return
+	}
+	fmt.Fprintf(out, "mode: %s\n", profiles[0].Mode)
+	for _, p := range profiles {
+		for _, b := range p.Blocks {
+			fmt.Fprintf(out, "%s:%d.%d,%d.%d %d %d\n", p.FileName, b.StartLine, b.StartCol, b.EndLine, b.EndCol, b.NumStmt, b.Count)
+		}
+	}
+}
+
 func mergeProfiles(p *cover.Profile, merge *cover.Profile) error {
 	if p.Mode != merge.Mode {
 		return errors.New("cannot merge profiles with different modes")
@@ -66,30 +92,4 @@ func mergeProfileBlock(p *cover.Profile, pb cover.ProfileBlock, startIndex int) 
 		p.Blocks[i] = pb
 	}
 	return i + 1, nil
-}
-
-func AddProfile(profiles []*cover.Profile, p *cover.Profile) ([]*cover.Profile, error) {
-	i := sort.Search(len(profiles), func(i int) bool { return profiles[i].FileName >= p.FileName })
-	if i < len(profiles) && profiles[i].FileName == p.FileName {
-		if err := mergeProfiles(profiles[i], p); err != nil {
-			return nil, err
-		}
-	} else {
-		profiles = append(profiles, nil)
-		copy(profiles[i+1:], profiles[i:])
-		profiles[i] = p
-	}
-	return profiles, nil
-}
-
-func DumpProfiles(profiles []*cover.Profile, out io.Writer) {
-	if len(profiles) == 0 {
-		return
-	}
-	fmt.Fprintf(out, "mode: %s\n", profiles[0].Mode)
-	for _, p := range profiles {
-		for _, b := range p.Blocks {
-			fmt.Fprintf(out, "%s:%d.%d,%d.%d %d %d\n", p.FileName, b.StartLine, b.StartCol, b.EndLine, b.EndCol, b.NumStmt, b.Count)
-		}
-	}
 }

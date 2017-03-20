@@ -12,13 +12,13 @@ import (
 
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester/merge"
-	"github.com/dave/patsy/pathcache"
+	"github.com/dave/patsy"
 	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/cover"
 )
 
-func New(env vos.Env, paths *pathcache.PathCache) *Tester {
+func New(env vos.Env, paths *patsy.Cache) *Tester {
 	t := &Tester{
 		env:   env,
 		paths: paths,
@@ -32,7 +32,7 @@ type Tester struct {
 	cover      string
 	Results    []*cover.Profile
 	previousWd string
-	paths      *pathcache.PathCache
+	paths      *patsy.Cache
 }
 
 func (t *Tester) Test(packages []shared.PackageSpec) error {
@@ -73,7 +73,7 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 
 		// Filenames in t.Results are in go package form. We need to convert to
 		// filepaths before use
-		fpath, err := t.paths.GoNameToFilePath(p.FileName)
+		fpath, err := t.paths.FilePath(p.FileName)
 		if err != nil {
 			return err
 		}

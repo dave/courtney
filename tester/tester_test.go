@@ -17,7 +17,6 @@ import (
 	"github.com/dave/courtney/tester"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 )
 
@@ -144,7 +143,7 @@ func TestNew(t *testing.T) {
 				}
 			}
 
-			paths := pathcache.New(env)
+			paths := patsy.NewCache(env)
 
 			ts := tester.New(env, paths)
 
@@ -162,7 +161,7 @@ func TestNew(t *testing.T) {
 			for _, p := range ts.Results {
 				filesInOutput[p.FileName] = true
 				pkg, fname := path.Split(p.FileName)
-				dir, err := patsy.GetDirFromPackage(env, pkg)
+				dir, err := patsy.Dir(env, pkg)
 				if err != nil {
 					t.Fatalf("Error in '%s' while getting dir from package: %s", name, err)
 				}

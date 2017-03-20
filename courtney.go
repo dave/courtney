@@ -7,7 +7,7 @@ import (
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester"
-	"github.com/dave/patsy/pathcache"
+	"github.com/dave/patsy"
 	"github.com/dave/patsy/vos"
 )
 
@@ -22,7 +22,7 @@ func main() {
 		args = []string{"./..."}
 	}
 
-	paths := pathcache.New(env)
+	paths := patsy.NewCache(env)
 	packages, err := shared.ParseArgs(env, paths, args...)
 	if err != nil {
 		log.Fatal(err)

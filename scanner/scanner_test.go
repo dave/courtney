@@ -11,8 +11,8 @@ import (
 
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
+	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/pathcache"
 	"github.com/dave/patsy/vos"
 )
 
@@ -655,7 +655,7 @@ func test(t *testing.T, tests map[string]string) {
 				t.Fatalf("Error creating package in %s: %s", name, err)
 			}
 
-			paths := pathcache.New(env)
+			paths := patsy.NewCache(env)
 
 			packages, err := shared.ParseArgs(env, paths, ppath)
 			if err != nil {
