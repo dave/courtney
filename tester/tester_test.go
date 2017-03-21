@@ -168,6 +168,9 @@ func TestNew(t *testing.T) {
 					t.Fatalf("Error in '%s' while getting dir from package: %s", name, err)
 				}
 				src, err := ioutil.ReadFile(filepath.Join(dir, fname))
+				if err != nil {
+					t.Fatalf("Error in '%s' while opening coverage: %s", name, err)
+				}
 				lines := strings.Split(string(src), "\n")
 				matched := map[int]bool{}
 				for _, b := range p.Blocks {

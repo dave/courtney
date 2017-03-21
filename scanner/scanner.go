@@ -14,18 +14,21 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
+// CodeMap scans a number of packages for code to exclude
 type CodeMap struct {
 	setup    *shared.Setup
 	prog     *loader.Program
 	Excludes map[string]map[int]bool
 }
 
+// CodeMap scans a single package for code to exclude
 type PackageMap struct {
 	*CodeMap
 	info *loader.PackageInfo
 	fset *token.FileSet
 }
 
+// CodeMap scans a single file for code to exclude
 type FileMap struct {
 	*PackageMap
 	file *ast.File
@@ -36,6 +39,7 @@ type packageId struct {
 	name string
 }
 
+// New returns a CoseMap with the provided setup
 func New(setup *shared.Setup) *CodeMap {
 	return &CodeMap{
 		setup:    setup,
@@ -43,13 +47,15 @@ func New(setup *shared.Setup) *CodeMap {
 	}
 }
 
-func (c *CodeMap) AddExclude(fpath string, line int) {
+func (c *CodeMap) addExclude(fpath string, line int) {
 	if c.Excludes[fpath] == nil {
 		c.Excludes[fpath] = make(map[int]bool)
 	}
 	c.Excludes[fpath][line] = true
 }
 
+// LoadProgram uses the loader package to load and process the source for a
+// number or packages.
 func (c *CodeMap) LoadProgram() error {
 	ctxt := build.Default
 	ctxt.GOPATH = c.setup.Env.Getenv("GOPATH")
@@ -70,6 +76,7 @@ func (c *CodeMap) LoadProgram() error {
 	return nil
 }
 
+// ScanPackages scans the imported packages
 func (c *CodeMap) ScanPackages() error {
 	for _, p := range c.prog.Imported {
 		pm := &PackageMap{
@@ -84,6 +91,7 @@ func (c *CodeMap) ScanPackages() error {
 	return nil
 }
 
+// ScanPackages scans a single package
 func (p *PackageMap) ScanPackage() error {
 	for _, f := range p.info.Files {
 		fm := &FileMap{
@@ -97,6 +105,7 @@ func (p *PackageMap) ScanPackage() error {
 	return nil
 }
 
+// FindExcludes scans a single file to find code to exclude from coverage files
 func (f *FileMap) FindExcludes() error {
 	var err error
 	ast.Inspect(f.file, func(node ast.Node) bool {
@@ -161,7 +170,7 @@ func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
 				endLine++
 			}
 			for line := comment.Line; line < endLine; line++ {
-				f.AddExclude(start.Filename, line)
+				f.addExclude(start.Filename, line)
 			}
 		}
 	}
@@ -175,7 +184,7 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 	case *ast.CallExpr:
 		if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "panic" {
 			pos := f.fset.Position(n.Pos())
-			f.AddExclude(pos.Filename, pos.Line)
+			f.addExclude(pos.Filename, pos.Line)
 		}
 	case *ast.IfStmt:
 		if err := f.inspectIf(n); err != nil {
@@ -307,7 +316,7 @@ func (f *FileMap) inspectNodeForReturn(search ast.Expr) func(node ast.Node) bool
 		case *ast.ReturnStmt:
 			if f.isErrorReturn(n, search) {
 				pos := f.fset.Position(n.Pos())
-				f.AddExclude(pos.Filename, pos.Line)
+				f.addExclude(pos.Filename, pos.Line)
 			}
 		}
 		return true

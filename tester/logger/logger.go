@@ -5,12 +5,14 @@ import (
 	"io"
 )
 
+// Log returns a buffer and two Writers. Data written to the writers is
+// combined and stored in the buffer. If verbose = true, it is also written to
+// the two provided Writers.
 func Log(verbose bool, stdout io.Writer, stderr io.Writer) (log *bytes.Buffer, loggedStdout io.Writer, loggedStderr io.Writer) {
 	log = &bytes.Buffer{}
 	if verbose {
 		loggedStdout = MultiWriter(stdout, log)
 		loggedStderr = MultiWriter(stderr, log)
-
 	} else {
 		loggedStdout = log
 		loggedStderr = log
@@ -31,6 +33,7 @@ type multiWriter struct {
 	writers []io.Writer
 }
 
+// Write writes to the writers.
 func (t *multiWriter) Write(p []byte) (n int, err error) {
 	for _, w := range t.writers {
 		w.Write(p)

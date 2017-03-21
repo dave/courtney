@@ -10,6 +10,8 @@ import (
 	"github.com/dave/patsy/vos"
 )
 
+// Setup holds globals, environment and command line flags for the courtney
+// command
 type Setup struct {
 	Env      vos.Env
 	Paths    *patsy.Cache
@@ -20,11 +22,13 @@ type Setup struct {
 	Packages []PackageSpec
 }
 
+// PackageSpec identifies a package by dir and path
 type PackageSpec struct {
 	Dir  string
 	Path string
 }
 
+// Parse parses a slice of strings into the Packages slice
 func (s *Setup) Parse(args []string) error {
 	if len(args) == 0 {
 		args = []string{"./..."}

@@ -9,6 +9,7 @@ import (
 	"golang.org/x/tools/cover"
 )
 
+// AddProfile adds and merges a profile to a slice of profiles
 func AddProfile(profiles []*cover.Profile, p *cover.Profile) ([]*cover.Profile, error) {
 	i := sort.Search(len(profiles), func(i int) bool { return profiles[i].FileName >= p.FileName })
 	if i < len(profiles) && profiles[i].FileName == p.FileName {
@@ -23,6 +24,7 @@ func AddProfile(profiles []*cover.Profile, p *cover.Profile) ([]*cover.Profile, 
 	return profiles, nil
 }
 
+// DumpProfiles writes a slice of profiles to a writer in the standard format.
 func DumpProfiles(profiles []*cover.Profile, out io.Writer) {
 	if len(profiles) == 0 {
 		return

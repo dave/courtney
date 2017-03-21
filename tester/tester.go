@@ -18,6 +18,7 @@ import (
 	"golang.org/x/tools/cover"
 )
 
+// New creates a new Tester with the provided setup
 func New(setup *shared.Setup) *Tester {
 	t := &Tester{
 		setup: setup,
@@ -25,12 +26,14 @@ func New(setup *shared.Setup) *Tester {
 	return t
 }
 
+// Tester runs tests and merges coverage files
 type Tester struct {
 	setup   *shared.Setup
 	cover   string
 	Results []*cover.Profile
 }
 
+// Test initiates the tests and merges the coverage files
 func (t *Tester) Test() error {
 
 	var err error
@@ -48,6 +51,7 @@ func (t *Tester) Test() error {
 	return nil
 }
 
+// Save saves the coverage file
 func (t *Tester) Save() error {
 	if len(t.Results) == 0 {
 		fmt.Println("No results")
@@ -66,6 +70,8 @@ func (t *Tester) Save() error {
 	return nil
 }
 
+// Enforce returns an error if code is untested if the -e command line option
+// is set
 func (t *Tester) Enforce() error {
 	if !t.setup.Enforce {
 		return nil
@@ -124,6 +130,8 @@ func (t *Tester) Enforce() error {
 	return nil
 }
 
+// ProcessExcludes uses the output from the scanner package and removes blocks
+// from the merged coverage file.
 func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 	var processed []*cover.Profile
 
