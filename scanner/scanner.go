@@ -21,14 +21,14 @@ type CodeMap struct {
 	Excludes map[string]map[int]bool
 }
 
-// CodeMap scans a single package for code to exclude
+// PackageMap scans a single package for code to exclude
 type PackageMap struct {
 	*CodeMap
 	info *loader.PackageInfo
 	fset *token.FileSet
 }
 
-// CodeMap scans a single file for code to exclude
+// FileMap scans a single file for code to exclude
 type FileMap struct {
 	*PackageMap
 	file *ast.File
@@ -91,7 +91,7 @@ func (c *CodeMap) ScanPackages() error {
 	return nil
 }
 
-// ScanPackages scans a single package
+// ScanPackage scans a single package
 func (p *PackageMap) ScanPackage() error {
 	for _, f := range p.info.Files {
 		fm := &FileMap{
@@ -112,12 +112,12 @@ func (f *FileMap) FindExcludes() error {
 		if err != nil {
 			return false
 		}
-		if b, inner := f.inspectNode(node); inner != nil {
+		b, inner := f.inspectNode(node)
+		if inner != nil {
 			err = inner
 			return false
-		} else {
-			return b
 		}
+		return b
 	})
 	if err != nil {
 		return err

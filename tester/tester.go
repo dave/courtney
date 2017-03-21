@@ -94,30 +94,12 @@ func (t *Tester) Enforce() error {
 			}
 		}
 	}
+
 	if len(untested) == 0 {
 		return nil
 	}
-	if t.setup.Verbose {
-		fmt.Fprintln(t.setup.Env.Stdout(), "Untested code:")
-		for name, blocks := range untested {
-			fpath, err := t.setup.Paths.FilePath(name)
-			if err != nil {
-				return err
-			}
-			by, err := ioutil.ReadFile(fpath)
-			if err != nil {
-				return errors.Wrapf(err, "Error reading source file %s", fpath)
-			}
-			lines := strings.Split(string(by), "\n")
-			for _, b := range blocks {
-				fmt.Fprintf(t.setup.Env.Stdout(), "%s:%d-%d:\n", name, b.StartLine, b.EndLine)
-				undented := undent(lines[b.StartLine-1 : b.EndLine])
-				fmt.Fprintln(t.setup.Env.Stdout(), strings.Join(undented, "\n"))
-			}
-		}
-		return errors.New("Error: untested code")
 
-	} else {
+	if !t.setup.Verbose {
 		s := "Error: untested code:\n"
 		for name, blocks := range untested {
 			for _, b := range blocks {
@@ -127,7 +109,25 @@ func (t *Tester) Enforce() error {
 		return errors.New(s)
 	}
 
-	return nil
+	fmt.Fprintln(t.setup.Env.Stdout(), "Untested code:")
+	for name, blocks := range untested {
+		fpath, err := t.setup.Paths.FilePath(name)
+		if err != nil {
+			return err
+		}
+		by, err := ioutil.ReadFile(fpath)
+		if err != nil {
+			return errors.Wrapf(err, "Error reading source file %s", fpath)
+		}
+		lines := strings.Split(string(by), "\n")
+		for _, b := range blocks {
+			fmt.Fprintf(t.setup.Env.Stdout(), "%s:%d-%d:\n", name, b.StartLine, b.EndLine)
+			undented := undent(lines[b.StartLine-1 : b.EndLine])
+			fmt.Fprintln(t.setup.Env.Stdout(), strings.Join(undented, "\n"))
+		}
+	}
+	return errors.New("Error: untested code")
+
 }
 
 // ProcessExcludes uses the output from the scanner package and removes blocks
