@@ -23,25 +23,29 @@ func TestParseArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pcache := patsy.NewCache(env)
+	paths := patsy.NewCache(env)
 
 	if err := env.Setwd(adir); err != nil {
 		t.Fatal(err)
 	}
 
-	psa, err := shared.ParseArgs(env, pcache, ".")
-	if err != nil {
+	setup := shared.Setup{
+		Env:   env,
+		Paths: paths,
+	}
+
+	if err := setup.Parse([]string{"."}); err != nil {
 		t.Fatal(err)
 	}
-	if len(psa) != 1 {
-		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(psa))
+	if len(setup.Packages) != 1 {
+		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(setup.Packages))
 	}
 	expected := shared.PackageSpec{
 		Dir:  adir,
 		Path: apath,
 	}
-	if psa[0] != expected {
-		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expected, psa[0])
+	if setup.Packages[0] != expected {
+		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expected, setup.Packages[0])
 	}
 
 }

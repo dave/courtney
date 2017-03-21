@@ -145,15 +145,17 @@ func TestNew(t *testing.T) {
 
 			paths := patsy.NewCache(env)
 
-			ts := tester.New(env, paths)
-
-			packages, err := shared.ParseArgs(env, paths, test.args...)
-			if err != nil {
+			setup := &shared.Setup{
+				Env:   env,
+				Paths: paths,
+			}
+			if err := setup.Parse(test.args); err != nil {
 				t.Fatalf("Error in '%s' parsing args: %s", name, err)
 			}
 
-			err = ts.Test(packages)
-			if err != nil {
+			ts := tester.New(setup)
+
+			if err := ts.Test(); err != nil {
 				t.Fatalf("Error in '%s' while running test: %s", name, err)
 			}
 

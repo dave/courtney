@@ -657,14 +657,17 @@ func test(t *testing.T, tests map[string]string) {
 
 			paths := patsy.NewCache(env)
 
-			packages, err := shared.ParseArgs(env, paths, ppath)
-			if err != nil {
+			setup := &shared.Setup{
+				Env:   env,
+				Paths: paths,
+			}
+			if err := setup.Parse([]string{ppath}); err != nil {
 				t.Fatalf("Error parsing args in %s: %s", name, err)
 			}
 
-			cm := scanner.New(env, paths)
+			cm := scanner.New(setup)
 
-			if err := cm.LoadProgram(packages); err != nil {
+			if err := cm.LoadProgram(); err != nil {
 				t.Fatalf("Error loading program in %s: %s", name, err)
 			}
 

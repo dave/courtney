@@ -10,12 +10,25 @@ import (
 	"github.com/dave/patsy/vos"
 )
 
+type Setup struct {
+	Env      vos.Env
+	Paths    *patsy.Cache
+	Enforce  bool
+	Verbose  bool
+	Output   string
+	TestArgs []string
+	Packages []PackageSpec
+}
+
 type PackageSpec struct {
 	Dir  string
 	Path string
 }
 
-func ParseArgs(env vos.Env, paths *patsy.Cache, args ...string) ([]PackageSpec, error) {
+func (s *Setup) Parse(args []string) error {
+	if len(args) == 0 {
+		args = []string{"./..."}
+	}
 	packages := map[string]string{}
 	for _, ppath := range args {
 		var dir string
@@ -29,19 +42,19 @@ func ParseArgs(env vos.Env, paths *patsy.Cache, args ...string) ([]PackageSpec, 
 		}
 		if ppath == "." {
 			var err error
-			dir, err = env.Getwd()
+			dir, err = s.Env.Getwd()
 			if err != nil {
-				return nil, err
+				return err
 			}
-			ppath, err = paths.Path(dir)
+			ppath, err = s.Paths.Path(dir)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		} else {
 			var err error
-			dir, err = paths.Dir(ppath)
+			dir, err = s.Paths.Dir(ppath)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 		if !recursive {
@@ -60,17 +73,16 @@ func ParseArgs(env vos.Env, paths *patsy.Cache, args ...string) ([]PackageSpec, 
 				return nil
 			})
 			for dir := range dirs {
-				ppath, err := paths.Path(dir)
+				ppath, err := s.Paths.Path(dir)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				packages[ppath] = dir
 			}
 		}
 	}
-	var specs []PackageSpec
 	for ppath, dir := range packages {
-		specs = append(specs, PackageSpec{Path: ppath, Dir: dir})
+		s.Packages = append(s.Packages, PackageSpec{Path: ppath, Dir: dir})
 	}
-	return specs, nil
+	return nil
 }

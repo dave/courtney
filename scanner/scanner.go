@@ -10,17 +10,14 @@ import (
 
 	"github.com/dave/brenda"
 	"github.com/dave/courtney/shared"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/vos"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
 )
 
 type CodeMap struct {
-	env      vos.Env
+	setup    *shared.Setup
 	prog     *loader.Program
 	Excludes map[string]map[int]bool
-	paths    *patsy.Cache
 }
 
 type PackageMap struct {
@@ -39,11 +36,10 @@ type packageId struct {
 	name string
 }
 
-func New(env vos.Env, paths *patsy.Cache) *CodeMap {
+func New(setup *shared.Setup) *CodeMap {
 	return &CodeMap{
-		env:      env,
+		setup:    setup,
 		Excludes: make(map[string]map[int]bool),
-		paths:    paths,
 	}
 }
 
@@ -54,16 +50,16 @@ func (c *CodeMap) AddExclude(fpath string, line int) {
 	c.Excludes[fpath][line] = true
 }
 
-func (c *CodeMap) LoadProgram(packages []shared.PackageSpec) error {
+func (c *CodeMap) LoadProgram() error {
 	ctxt := build.Default
-	ctxt.GOPATH = c.env.Getenv("GOPATH")
-	wd, err := c.env.Getwd()
+	ctxt.GOPATH = c.setup.Env.Getenv("GOPATH")
+	wd, err := c.setup.Env.Getwd()
 	if err != nil {
 		return err
 	}
 	conf := loader.Config{Build: &ctxt, Cwd: wd, ParserMode: parser.ParseComments}
 
-	for _, p := range packages {
+	for _, p := range c.setup.Packages {
 		conf.Import(p.Path)
 	}
 	prog, err := conf.Load()
