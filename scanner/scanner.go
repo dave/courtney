@@ -9,6 +9,7 @@ import (
 	"go/parser"
 
 	"github.com/dave/brenda"
+	"github.com/dave/courtney/astrid"
 	"github.com/dave/courtney/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
@@ -31,7 +32,8 @@ type PackageMap struct {
 // FileMap scans a single file for code to exclude
 type FileMap struct {
 	*PackageMap
-	file *ast.File
+	file    *ast.File
+	matcher *astrid.Matcher
 }
 
 type packageId struct {
@@ -97,6 +99,7 @@ func (p *PackageMap) ScanPackage() error {
 		fm := &FileMap{
 			PackageMap: p,
 			file:       f,
+			matcher:    astrid.NewMatcher(p.info.Info),
 		}
 		if err := fm.FindExcludes(); err != nil {
 			return err
@@ -380,7 +383,7 @@ func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
 		return false
 	}
 	for _, arg := range n.Args {
-		if f.matchExpr(arg, search) {
+		if f.matcher.Match(arg, search) {
 			return true
 		}
 	}
@@ -419,7 +422,7 @@ func (f *FileMap) isErrorReturnNamedResultParameters(r *ast.ReturnStmt, search a
 		return false
 	}
 	id := last.Names[len(last.Names)-1]
-	return f.matchExpr(id, search)
+	return f.matcher.Match(id, search)
 }
 
 func (f *FileMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
@@ -445,145 +448,7 @@ func (f *FileMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
 		}
 	}
 
-	return f.matchExpr(last, search) || f.isErrorCall(last, search)
-}
-
-func (f *FileMap) matchExpr(a, b ast.Expr) bool {
-	// are the expressions equal?
-	switch at := a.(type) {
-	case nil:
-		return b == nil
-	case *ast.Ident:
-		if bt, ok := b.(*ast.Ident); ok {
-			usea, isusea := f.info.Uses[at]
-			useb, isuseb := f.info.Uses[bt]
-			defa, isdefa := f.info.Defs[at]
-			defb, isdefb := f.info.Defs[bt]
-			switch {
-			case isusea && isuseb && usea == useb,
-				isdefa && isdefb && defa == defb,
-				isdefa && isuseb && defa == useb,
-				isusea && isdefb && usea == defb:
-				return true
-			}
-			return false
-		}
-		return false
-	case *ast.SelectorExpr:
-		if bt, ok := b.(*ast.SelectorExpr); ok {
-			return f.matchExpr(at.Sel, bt.Sel) &&
-				f.matchExpr(at.X, bt.X)
-		}
-		return false
-	case *ast.CallExpr:
-		if bt, ok := b.(*ast.CallExpr); ok {
-			return f.matchExpr(at.Fun, bt.Fun) &&
-				f.matchExprs(at.Args, bt.Args) &&
-				((at.Ellipsis == token.NoPos) == (bt.Ellipsis == token.NoPos))
-		}
-		return false
-	case *ast.BasicLit:
-		if bt, ok := b.(*ast.BasicLit); ok {
-			return at.Kind == bt.Kind &&
-				at.Value == bt.Value
-		}
-	case *ast.ParenExpr:
-		if bt, ok := b.(*ast.ParenExpr); ok {
-			return f.matchExpr(at.X, bt.X)
-		}
-		return false
-	case *ast.IndexExpr:
-		if bt, ok := b.(*ast.IndexExpr); ok {
-			return f.matchExpr(at.X, bt.X) &&
-				f.matchExpr(at.Index, bt.Index)
-		}
-		return false
-	case *ast.SliceExpr:
-		if bt, ok := b.(*ast.SliceExpr); ok {
-			return f.matchExpr(at.X, bt.X) &&
-				f.matchExpr(at.High, bt.High) &&
-				f.matchExpr(at.Low, bt.Low) &&
-				f.matchExpr(at.Max, bt.Max) &&
-				at.Slice3 == bt.Slice3
-		}
-		return false
-	case *ast.TypeAssertExpr:
-		if bt, ok := b.(*ast.TypeAssertExpr); ok {
-			return f.matchExpr(at.X, bt.X) &&
-				f.matchExpr(at.Type, bt.Type)
-		}
-		return false
-	case *ast.StarExpr:
-		if bt, ok := b.(*ast.StarExpr); ok {
-			return f.matchExpr(at.X, bt.X)
-		}
-		return false
-	case *ast.UnaryExpr:
-		if bt, ok := b.(*ast.UnaryExpr); ok {
-			return f.matchExpr(at.X, bt.X) &&
-				at.Op == bt.Op
-		}
-		return false
-	case *ast.BinaryExpr:
-		if bt, ok := b.(*ast.BinaryExpr); ok {
-			return f.matchExpr(at.X, bt.X) &&
-				f.matchExpr(at.Y, bt.Y) &&
-				at.Op == bt.Op
-		}
-		return false
-	case *ast.Ellipsis:
-		if bt, ok := b.(*ast.Ellipsis); ok {
-			return f.matchExpr(at.Elt, bt.Elt)
-		}
-		return false
-	case *ast.CompositeLit:
-		if bt, ok := b.(*ast.CompositeLit); ok {
-			return f.matchExpr(at.Type, bt.Type) &&
-				f.matchExprs(at.Elts, bt.Elts)
-		}
-		return false
-	case *ast.KeyValueExpr:
-		if bt, ok := b.(*ast.KeyValueExpr); ok {
-			return f.matchExpr(at.Key, bt.Key) &&
-				f.matchExpr(at.Value, bt.Value)
-		}
-		return false
-	case *ast.ArrayType:
-		if bt, ok := b.(*ast.ArrayType); ok {
-			return f.matchExpr(at.Elt, bt.Elt) &&
-				f.matchExpr(at.Len, bt.Len)
-		}
-		return false
-	case *ast.MapType:
-		if bt, ok := b.(*ast.MapType); ok {
-			return f.matchExpr(at.Key, bt.Key) &&
-				f.matchExpr(at.Value, bt.Value)
-		}
-		return false
-	case *ast.ChanType:
-		if bt, ok := b.(*ast.ChanType); ok {
-			return f.matchExpr(at.Value, bt.Value) &&
-				at.Dir == bt.Dir
-		}
-		return false
-	case *ast.BadExpr, *ast.FuncLit, *ast.StructType, *ast.FuncType, *ast.InterfaceType:
-		// can't be compared
-		return false
-	}
-	return false
-}
-
-func (f *FileMap) matchExprs(a, b []ast.Expr) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, ae := range a {
-		be := b[i]
-		if !f.matchExpr(ae, be) {
-			return false
-		}
-	}
-	return true
+	return f.matcher.Match(last, search) || f.isErrorCall(last, search)
 }
 
 func (f *FileMap) isError(v ast.Expr) bool {
