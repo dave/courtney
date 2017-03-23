@@ -10,7 +10,7 @@ install:
   - go get -u github.com/dave/courtney
   - go get -t -v ./...
 script:
-  - courtney -e
+  - courtney -e -v
 after_success:
   - bash <(curl -s https://codecov.io/bash)                 # only for codecov.io
   - goveralls -coverprofile=coverage.out -service=travis-ci # only for coveralls.io
