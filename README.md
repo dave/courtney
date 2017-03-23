@@ -80,6 +80,32 @@ To test `tester`, it's sub-packages and the `scanner` package:
 courtney github.com/dave/courtney/tester/... github.com/dave/courtney/scanner
 ```
 
+# Options
+### Enforce: -e
+`Enforce 100% code coverage.`
+
+The command will exit with an error if any code remains uncovered.
+
+### Output: -o
+`Override coverage file location.`
+
+Provide a custom location for the coverage file. The default is `./coverage.out`.
+
+### Test flags: -t
+`Argument to pass to the 'go test' command.`
+
+If you have special arguments to pass to the `go test` command, add them here. 
+Add one `-t` flag per argument e.g.
+```
+$ courtney -t="-count=2" -t="-parallel=4"
+```
+
+### Verbose: -v
+`Verbose output`
+
+All the output from the go test command is streamed directly to the stdout. 
+This also gives more information about missing code when in `-e` mode. 
+
 # Output
 Courtney will fail if the tests fail. If the tests succeed, it will create or
 overwrite a `coverage.out` file in the current directory.
@@ -104,3 +130,9 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 ```
+
+Combining a CI system with a fully tested package and the `-e` flag is 
+extremely useful. It ensures any pull request has tests that cover all new code.
+For example, [here is a PR](https://github.com/dave/courtney/pull/5) for this 
+project that lacks tests. As you can see the Travis build failed with a 
+descriptive error. 
