@@ -8,7 +8,7 @@ less important parts.
 1. Packages are tested with coverage.  
 2. Coverage files are merged.  
 3. Some code is less important to test. This is excluded from the coverage file.      
-<!--4. Optionally we enforce that all remaining code is covered.-->  
+4. Optionally we enforce that all remaining code is covered.
 
 # Excludes 
 What do we exclude from the coverage report?
@@ -40,8 +40,10 @@ if i == 0 {
 ```
 
 All errors are originally created with code similar to `errors.New`, which is 
-not excluded from the coverage report. It's important your tests cover these 
-points, but less so the returning of an existing error.
+not excluded from the coverage report - it's important your tests hit these. 
+
+It's less important your tests cover all the points that an existing non-nil 
+error is passed back, so these are excluded. 
 
 A few more rules:
 * If multiple return values are returned, error must be the last, and all 
