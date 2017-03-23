@@ -21,8 +21,8 @@ error rather than a panic.
 Blocks or files with a `// notest` comment are excluded.
 
 ### Blocks returning a error tested to be non-nil
-We only exclude blocks where the error being returned is tested to be non-nil, 
-so:
+We only exclude blocks where the error being returned has been tested to be 
+non-nil, so:
 
 ```go
 err := foo()
@@ -52,8 +52,8 @@ others must be nil or zero values.
 taking a non-nil error as a parameter, e.g. `errors.Wrap(err, "...")`.  
 * We also exclude blocks containing a bare return statement, where the function 
 has named result parameters, and the last result is an error that has been 
-tested to be non-nil. Be aware that in this scenario no attempt is made to 
-verify that the other result parameters are nil or zero.  
+tested non-nil. Be aware that in this scenario no attempt is made to verify 
+that the other result parameters are zero values.  
 
 # Limitations  
 * Having test coverage doesn't mean your code is well tested.  
@@ -67,24 +67,33 @@ go get -u github.com/dave/courtney
 
 # Usage
 Run the courtney command followed by a list of packages. Use `.` for the 
-package in the current directory, and adding the `/...` suffix tests all 
-sub-packages recursively. If no packages are provided, the default is `./...`.
+package in the current directory, and adding `/...` tests all sub-packages 
+recursively. If no packages are provided, the default is `./...`.
 
 To test the current package, and all sub-packages recursively: 
 ```
 courtney
 ```
 
-To test `tester`, it's sub-packages and the `scanner` package: 
+To test just the current package: 
 ```
-courtney github.com/dave/courtney/tester/... github.com/dave/courtney/scanner
+courtney .
+```
+
+To test the `a` package, it's sub-packages and the `b` package: 
+```
+courtney github.com/dave/a/... github.com/dave/b
 ```
 
 # Options
 ### Enforce: -e
 `Enforce 100% code coverage.`
 
-The command will exit with an error if any code remains uncovered.
+The command will exit with an error if any code remains uncovered. Combining a 
+CI system with a fully tested package and the `-e` flag is extremely useful. It 
+ensures any pull request has tests that cover all new code. For example, [here 
+is a PR](https://github.com/dave/courtney/pull/5) for this project that lacks 
+tests. As you can see the Travis build failed with a descriptive error. 
 
 ### Output: -o
 `Override coverage file location.`
@@ -97,14 +106,14 @@ Provide a custom location for the coverage file. The default is `./coverage.out`
 If you have special arguments to pass to the `go test` command, add them here. 
 Add one `-t` flag per argument e.g.
 ```
-$ courtney -t="-count=2" -t="-parallel=4"
+courtney -t="-count=2" -t="-parallel=4"
 ```
 
 ### Verbose: -v
 `Verbose output`
 
-All the output from the go test command is streamed directly to the stdout. 
-This also gives more information about missing code when in `-e` mode. 
+All the output from the `go test -v` command is shown. This also shows snippets 
+of missing code when in `-e` mode. 
 
 # Output
 Courtney will fail if the tests fail. If the tests succeed, it will create or
@@ -131,8 +140,22 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 ```
 
-Combining a CI system with a fully tested package and the `-e` flag is 
-extremely useful. It ensures any pull request has tests that cover all new code.
-For example, [here is a PR](https://github.com/dave/courtney/pull/5) for this 
-project that lacks tests. As you can see the Travis build failed with a 
-descriptive error. 
+For [coveralls.io](https://coveralls.io/), use something like this:
+
+```yml
+language: go
+go:
+    - 1.x
+notificaitons:
+  email:
+    recipients: <your-email>
+    on_failure: always
+install:
+  - go get -u github.com/mattn/goveralls
+  - go get -u github.com/dave/courtney
+  - go get -t -v ./...
+script:
+  - courtney
+after_success:
+  - goveralls -coverprofile=coverage.out -service=travis-ci
+```
