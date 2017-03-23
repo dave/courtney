@@ -8,8 +8,10 @@ import (
 
 	"go/parser"
 
+	"go/types"
+
+	"github.com/dave/astrid"
 	"github.com/dave/brenda"
-	"github.com/dave/courtney/astrid"
 	"github.com/dave/courtney/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
@@ -452,8 +454,11 @@ func (f *FileMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
 }
 
 func (f *FileMap) isError(v ast.Expr) bool {
-	t := f.info.Types[v]
-	return t.Type.String() == "error" && t.Type.Underlying().String() == "interface{Error() string}"
+	if n, ok := f.info.TypeOf(v).(*types.Named); ok {
+		o := n.Obj()
+		return o != nil && o.Pkg() == nil && o.Name() == "error"
+	}
+	return false
 }
 
 func (f *FileMap) isNil(v ast.Expr) bool {
