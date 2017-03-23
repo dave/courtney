@@ -38,6 +38,7 @@ func main() {
 	}
 }
 
+// Run initiates the command with the provided setup
 func Run(setup *shared.Setup) error {
 
 	if err := setup.Parse(flag.Args()); err != nil {
