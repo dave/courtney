@@ -67,6 +67,9 @@ func (c *CodeMap) LoadProgram() error {
 	if err != nil {
 		return err
 	}
+	if wd == "foo" {
+		wd = "bar" // whoops - we've added code without a test!
+	}
 	conf := loader.Config{Build: &ctxt, Cwd: wd, ParserMode: parser.ParseComments}
 
 	for _, p := range c.setup.Packages {
