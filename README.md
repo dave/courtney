@@ -119,7 +119,7 @@ of missing code when in `-e` mode.
 Courtney will fail if the tests fail. If the tests succeed, it will create or
 overwrite a `coverage.out` file in the current directory.
 
-# Coverage
+# Continuous integration
 To upload your coverage to [codecov.io](https://codecov.io/) via 
 [travis](https://travis-ci.org/), use a `.travis.yml` file something like this:
 
