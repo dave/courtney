@@ -115,10 +115,12 @@ func (f *FileMap) FindExcludes() error {
 	var err error
 	ast.Inspect(f.file, func(node ast.Node) bool {
 		if err != nil {
+			// notest
 			return false
 		}
 		b, inner := f.inspectNode(node)
 		if inner != nil {
+			// notest
 			err = inner
 			return false
 		}
@@ -151,6 +153,7 @@ func (f *FileMap) findScope(node ast.Node, filter func(ast.Node) bool) ast.Node 
 			return scopes[i]
 		}
 	}
+	// notest
 	return nil
 }
 
@@ -341,19 +344,24 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 			// var e error = foo()
 			gd, ok := n.Decl.(*ast.GenDecl)
 			if !ok {
+				// notest
 				return true
 			}
 			if gd.Tok != token.VAR {
+				// notest
 				return true
 			}
 			if len(gd.Specs) != 1 {
+				// notest
 				return true
 			}
 			spec, ok := gd.Specs[0].(*ast.ValueSpec)
 			if !ok {
+				// notest
 				return true
 			}
 			if len(spec.Names) != 1 || len(spec.Values) != 1 {
+				// notest
 				return true
 			}
 			newSearch := spec.Names[0]
@@ -364,6 +372,7 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 
 		case *ast.AssignStmt:
 			if len(n.Lhs) != 1 || len(n.Rhs) != 1 {
+				// notest
 				return true
 			}
 			newSearch := n.Lhs[0]
@@ -382,6 +391,8 @@ func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
 		return false
 	}
 	if !f.isError(n) {
+		// never gets here, but leave it in for completeness
+		// notest
 		return false
 	}
 	for _, arg := range n.Args {

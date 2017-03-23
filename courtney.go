@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-
+	// notest
 	env := vos.Os()
 
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
@@ -33,32 +33,40 @@ func main() {
 		Output:   *outputFlag,
 		TestArgs: argsFlag.args,
 	}
-	if err := setup.Parse(flag.Args()); err != nil {
+	if err := Run(setup); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func Run(setup *shared.Setup) error {
+
+	if err := setup.Parse(flag.Args()); err != nil {
+		return err
 	}
 
 	s := scanner.New(setup)
 	if err := s.LoadProgram(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := s.ScanPackages(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	t := tester.New(setup)
 	if err := t.Test(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := t.Save(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := t.Enforce(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
+	return nil
 }
 
 type argsValue struct {
@@ -68,12 +76,14 @@ type argsValue struct {
 var _ flag.Value = (*argsValue)(nil)
 
 func (v *argsValue) String() string {
+	// notest
 	if v == nil {
 		return ""
 	}
 	return strings.Join(v.args, " ")
 }
 func (v *argsValue) Set(s string) error {
+	// notest
 	v.args = append(v.args, s)
 	return nil
 }

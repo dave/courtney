@@ -1,7 +1,10 @@
 package tester_test
 
 import (
+	"bytes"
 	"testing"
+
+	"golang.org/x/tools/cover"
 
 	"fmt"
 
@@ -13,6 +16,10 @@ import (
 
 	"regexp"
 
+	"strconv"
+
+	"reflect"
+
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester"
 	"github.com/dave/patsy"
@@ -20,9 +27,155 @@ import (
 	"github.com/dave/patsy/vos"
 )
 
-var annotatedLine = regexp.MustCompile(`// \d+$`)
+func TestTester_ProcessExcludes(t *testing.T) {
+	env := vos.Mock()
+	b, err := builder.New(env, "ns")
+	if err != nil {
+		t.Fatalf("Error creating builder in %s", err)
+	}
+	defer b.Cleanup()
+	_, pdir, err := b.Package("a", nil)
+	if err != nil {
+		t.Fatalf("Error creating temp package: %s", err)
+	}
 
-func TestNew(t *testing.T) {
+	setup := &shared.Setup{
+		Env:   env,
+		Paths: patsy.NewCache(env),
+	}
+	ts := tester.New(setup)
+	ts.Results = []*cover.Profile{
+		{
+			FileName: "ns/a/a.go",
+			Blocks: []cover.ProfileBlock{
+				{Count: 1, StartLine: 1, EndLine: 10},
+				{Count: 0, StartLine: 11, EndLine: 20},
+				{Count: 1, StartLine: 21, EndLine: 30},
+				{Count: 0, StartLine: 31, EndLine: 40},
+			},
+		},
+	}
+	excludes := map[string]map[int]bool{
+		filepath.Join(pdir, "a.go"): {
+			25: true,
+			35: true,
+		},
+	}
+	expected := []cover.ProfileBlock{
+		{Count: 1, StartLine: 1, EndLine: 10},
+		{Count: 0, StartLine: 11, EndLine: 20},
+		{Count: 1, StartLine: 21, EndLine: 30},
+	}
+	if err := ts.ProcessExcludes(excludes); err != nil {
+		t.Fatalf("Processing excludes: %s", err)
+	}
+	if !reflect.DeepEqual(ts.Results[0].Blocks, expected) {
+		t.Fatalf("Processing excludes - got:\n%#v\nexpected:\n%#v\n", ts.Results[0].Blocks, expected)
+	}
+
+}
+
+func TestTester_Enforce(t *testing.T) {
+	env := vos.Mock()
+	setup := &shared.Setup{
+		Env:     env,
+		Paths:   patsy.NewCache(env),
+		Enforce: true,
+	}
+	ts := tester.New(setup)
+	ts.Results = []*cover.Profile{
+		{
+			FileName: "a",
+			Mode:     "b",
+			Blocks: []cover.ProfileBlock{
+				{Count: 1},
+			},
+		},
+	}
+	if err := ts.Enforce(); err != nil {
+		t.Fatalf("Error enforcing: %s", err)
+	}
+
+	ts.Results[0].Blocks = []cover.ProfileBlock{
+		{Count: 1, StartLine: 1, EndLine: 2},
+		{Count: 0, StartLine: 5, EndLine: 10},
+	}
+	err := ts.Enforce()
+	if err == nil {
+		t.Fatal("Error enforcing - should get error, got nil")
+	}
+	expected := "Error: untested code:\na:5-10\n"
+	if err.Error() != expected {
+		t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
+	}
+
+	// check that blocks next to each other are merged
+	ts.Results[0].Blocks = []cover.ProfileBlock{
+		{Count: 1, StartLine: 1, EndLine: 2},
+		{Count: 0, StartLine: 5, EndLine: 10},
+		{Count: 0, StartLine: 11, EndLine: 15},
+		{Count: 0, StartLine: 17, EndLine: 20},
+	}
+	err = ts.Enforce()
+	if err == nil {
+		t.Fatal("Error enforcing - should get error, got nil")
+	}
+	expected = "Error: untested code:\na:5-15\na:17-20\n"
+	if err.Error() != expected {
+		t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
+	}
+
+}
+
+func TestTester_Save_output(t *testing.T) {
+	env := vos.Mock()
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("Error creating temp dir: %s", err)
+	}
+	out := filepath.Join(dir, "foo.bar")
+	setup := &shared.Setup{
+		Env:    env,
+		Paths:  patsy.NewCache(env),
+		Output: out,
+	}
+	ts := tester.New(setup)
+	ts.Results = []*cover.Profile{
+		{
+			FileName: "a",
+			Mode:     "b",
+			Blocks:   []cover.ProfileBlock{{}},
+		},
+	}
+	if err := ts.Save(); err != nil {
+		t.Fatalf("Error saving: %s", err)
+	}
+	if _, err := ioutil.ReadFile(out); err != nil {
+		t.Fatalf("Error loading coverage: %s", err)
+	}
+}
+
+func TestTester_Save_no_results(t *testing.T) {
+	env := vos.Mock()
+	sout := &bytes.Buffer{}
+	serr := &bytes.Buffer{}
+	env.Setstdout(sout)
+	env.Setstderr(serr)
+	setup := &shared.Setup{
+		Env:   env,
+		Paths: patsy.NewCache(env),
+	}
+	ts := tester.New(setup)
+	if err := ts.Save(); err != nil {
+		t.Fatalf("Error saving: %s", err)
+	}
+	expected := "No results\n"
+	if sout.String() != expected {
+		t.Fatalf("Error saving, stdout: got:\n%s\nexpected:\n%s\n", sout.String(), expected)
+	}
+}
+
+func TestTester_Test(t *testing.T) {
 
 	type args []string
 	type files map[string]string
@@ -206,3 +359,5 @@ func TestNew(t *testing.T) {
 		}()
 	}
 }
+
+var annotatedLine = regexp.MustCompile(`// \d+$`)

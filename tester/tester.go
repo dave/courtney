@@ -54,16 +54,20 @@ func (t *Tester) Test() error {
 // Save saves the coverage file
 func (t *Tester) Save() error {
 	if len(t.Results) == 0 {
-		fmt.Println("No results")
+		fmt.Fprintln(t.setup.Env.Stdout(), "No results")
 		return nil
 	}
-	out := "./coverage.out"
+	currentDir, err := t.setup.Env.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "Error getting working dir")
+	}
+	out := filepath.Join(currentDir, "coverage.out")
 	if t.setup.Output != "" {
 		out = t.setup.Output
 	}
 	f, err := os.Create(out)
 	if err != nil {
-		return errors.Wrapf(err, "Error creating output coverage file coverage.out")
+		return errors.Wrapf(err, "Error creating output coverage file %s", out)
 	}
 	defer f.Close()
 	merge.DumpProfiles(t.Results, f)
@@ -195,6 +199,7 @@ func (t *Tester) processDir(dir string) error {
 		}
 	}
 	if !foundTest {
+		// notest
 		return nil
 	}
 
@@ -221,7 +226,7 @@ func (t *Tester) processDir(dir string) error {
 	if t.setup.Verbose {
 		fmt.Fprintf(
 			t.setup.Env.Stdout(),
-			"Running test: %s\nl",
+			"Running test: %s\n",
 			strings.Join(append([]string{"go"}, args...), " "),
 		)
 	}
@@ -232,9 +237,12 @@ func (t *Tester) processDir(dir string) error {
 	exe.Stderr = stderr
 	err = exe.Run()
 	if strings.Contains(combined.String(), "no buildable Go source files in") {
+		// notest
 		return nil
 	}
 	if err != nil {
+		// TODO: Remove when https://github.com/dave/courtney/issues/4 is fixed
+		// notest
 		if t.setup.Verbose {
 			// They will already have seen the output
 			return errors.Wrap(err, "Error executing test")
@@ -265,6 +273,7 @@ func undent(lines []string) []string {
 	for _, line := range lines {
 		loc := indentRegex.FindStringIndex(line)
 		if len(loc) == 0 {
+			// notest
 			// string is empty?
 			continue
 		}
@@ -276,6 +285,7 @@ func undent(lines []string) []string {
 	var out []string
 	for _, line := range lines {
 		if line == "" {
+			// notest
 			out = append(out, "")
 		} else {
 			out = append(out, "\t"+line[mindent:])

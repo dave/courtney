@@ -19,6 +19,9 @@ func TestParseArgs(t *testing.T) {
 	apath, adir, err := b.Package("a", map[string]string{
 		"a.go": `package a`,
 	})
+	bpath, bdir, err := b.Package("a/b", map[string]string{
+		"b.go": `package b`,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,18 +37,73 @@ func TestParseArgs(t *testing.T) {
 		Paths: paths,
 	}
 
+	expectedA := shared.PackageSpec{
+		Dir:  adir,
+		Path: apath,
+	}
+	expectedB := shared.PackageSpec{
+		Dir:  bdir,
+		Path: bpath,
+	}
+
 	if err := setup.Parse([]string{"."}); err != nil {
 		t.Fatal(err)
 	}
 	if len(setup.Packages) != 1 {
 		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(setup.Packages))
 	}
-	expected := shared.PackageSpec{
-		Dir:  adir,
-		Path: apath,
+	if setup.Packages[0] != expectedA {
+		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expectedA, setup.Packages[0])
 	}
-	if setup.Packages[0] != expected {
-		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expected, setup.Packages[0])
+
+	setup = shared.Setup{
+		Env:   env,
+		Paths: paths,
+	}
+	if err := setup.Parse(nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(setup.Packages) != 2 {
+		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 2, got %d", len(setup.Packages))
+	}
+	if setup.Packages[0] != expectedA && setup.Packages[0] != expectedB {
+		t.Fatal("Error in ParseArgs - wrong package.")
+	}
+	if setup.Packages[1] != expectedA && setup.Packages[1] != expectedB {
+		t.Fatal("Error in ParseArgs - wrong package.")
+	}
+
+	if err := env.Setwd(bdir); err != nil {
+		t.Fatal(err)
+	}
+
+	setup = shared.Setup{
+		Env:   env,
+		Paths: paths,
+	}
+	if err := setup.Parse([]string{"."}); err != nil {
+		t.Fatal(err)
+	}
+	if len(setup.Packages) != 1 {
+		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(setup.Packages))
+	}
+	if setup.Packages[0] != expectedB {
+		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expectedB, setup.Packages[0])
+	}
+
+	setup = shared.Setup{
+		Env:   env,
+		Paths: paths,
+	}
+	// should correctly strip "/" suffix
+	if err := setup.Parse([]string{"ns/a/b/"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(setup.Packages) != 1 {
+		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(setup.Packages))
+	}
+	if setup.Packages[0] != expectedB {
+		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expectedB, setup.Packages[0])
 	}
 
 }

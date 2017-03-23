@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"fmt"
-
 	"path/filepath"
 
 	"github.com/dave/courtney/scanner"
@@ -19,14 +17,17 @@ import (
 func TestSingle(t *testing.T) {
 	tests := map[string]string{
 		"single": `package a
+
+			func wrap(error) error
 			
 			func a() error {
+				var a bool
 				var err error
-				switch {
-				default:
-					return err // *
-				case err == nil:
-					return err
+				if err != nil {
+					if a { // this line will not be excluded!
+						return wrap(err) // *
+					}
+					return wrap(err) // *
 				}
 				return nil
 			}
@@ -44,6 +45,32 @@ func TestSwitchCase(t *testing.T) {
 				switch {
 				case err != nil:
 					return err // *
+				}
+				return nil
+			}
+		`,
+		"switch multi": `package a
+			
+			func a() error {
+				var a bool
+				var err error
+				switch {
+				case err == nil, a:
+					return err
+				default: 
+					return err // *
+				}
+				return nil
+			}
+		`,
+		"simple switch ignored": `package a
+			
+			func a() error {
+				var a bool
+				var err error
+				switch a {
+				case err != nil:
+					return err
 				}
 				return nil
 			}
@@ -76,6 +103,16 @@ func TestNamedParameters(t *testing.T) {
 			func a() (err error) {
 				if err != nil {
 					return // *
+				}
+				return
+			}
+		`,
+		"named parameters ignored": `package a
+			
+			func a() {
+				var err error
+				if err != nil {
+					return
 				}
 				return
 			}
@@ -132,6 +169,17 @@ func TestBool(t *testing.T) {
 					return wrap(err) // *
 				}
 				return nil
+			}
+			`,
+		"wrap ignored": `package a
+			
+			func a() int {
+				var wrap func(error) int
+				var err error
+				if err != nil {
+					return wrap(err)
+				}
+				return 0
 			}
 			`,
 		"wrap2": `package a
@@ -672,7 +720,6 @@ func test(t *testing.T, tests map[string]string) {
 			}
 
 			if err := cm.ScanPackages(); err != nil {
-				fmt.Printf("%+v\n", err)
 				t.Fatalf("Error scanning packages in %s: %s", name, err)
 			}
 
@@ -683,8 +730,7 @@ func test(t *testing.T, tests map[string]string) {
 					strings.HasSuffix(line, "//notest") ||
 					strings.HasSuffix(line, "// notest")
 				if result[i+1] != expected {
-					fmt.Printf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
-					t.Fail()
+					t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
 				}
 			}
 		}()

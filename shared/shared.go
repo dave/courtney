@@ -63,14 +63,15 @@ func (s *Setup) Parse(args []string) error {
 		}
 		if !recursive {
 			packages[ppath] = dir
-		}
-		if recursive {
+		} else {
 			dirs := map[string]bool{}
 			filepath.Walk(dir, func(fpath string, info os.FileInfo, err error) error {
 				if !info.IsDir() && strings.HasSuffix(info.Name(), ".go") {
 					// Scan until we find a Go source file. Record the dir and
 					// skip the rest of the dir
 					fdir, _ := filepath.Split(fpath)
+					// don't want the dir to end with "/"
+					fdir = strings.TrimSuffix(fdir, string(filepath.Separator))
 					dirs[fdir] = true
 					return nil
 				}
