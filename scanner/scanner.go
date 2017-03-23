@@ -101,7 +101,7 @@ func (p *PackageMap) ScanPackage() error {
 		fm := &FileMap{
 			PackageMap: p,
 			file:       f,
-			matcher:    astrid.NewMatcher(p.info.Info),
+			matcher:    astrid.NewMatcher(p.info.Info.Uses, p.info.Info.Defs),
 		}
 		if err := fm.FindExcludes(); err != nil {
 			return err
@@ -225,7 +225,7 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 }
 
 func (f *FileMap) inspectCase(stmt *ast.CaseClause, falseExpr ...ast.Expr) error {
-	s := brenda.NewSolver(f.fset, f.info.Info, f.boolOr(stmt.List), falseExpr...)
+	s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, f.boolOr(stmt.List), falseExpr...)
 	if err := s.SolveTrue(); err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (f *FileMap) boolOr(list []ast.Expr) ast.Expr {
 func (f *FileMap) inspectIf(stmt *ast.IfStmt, falseExpr ...ast.Expr) error {
 
 	// main if block
-	s := brenda.NewSolver(f.fset, f.info.Info, stmt.Cond, falseExpr...)
+	s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, stmt.Cond, falseExpr...)
 	if err := s.SolveTrue(); err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (f *FileMap) inspectIf(stmt *ast.IfStmt, falseExpr ...ast.Expr) error {
 	case *ast.BlockStmt:
 
 		// else block
-		s := brenda.NewSolver(f.fset, f.info.Info, stmt.Cond, falseExpr...)
+		s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, stmt.Cond, falseExpr...)
 		if err := s.SolveFalse(); err != nil {
 			return err
 		}
