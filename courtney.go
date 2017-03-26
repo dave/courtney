@@ -22,6 +22,7 @@ func main() {
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
+	loadFlag := flag.String("l", "", "Load coverage file(s) instead of running 'go test'")
 
 	flag.Parse()
 
@@ -32,6 +33,7 @@ func main() {
 		Verbose:  *verboseFlag,
 		Output:   *outputFlag,
 		TestArgs: argsFlag.args,
+		Load:     *loadFlag,
 	}
 	if err := Run(setup); err != nil {
 		log.Fatal(err)
@@ -54,8 +56,14 @@ func Run(setup *shared.Setup) error {
 	}
 
 	t := tester.New(setup)
-	if err := t.Test(); err != nil {
-		return err
+	if setup.Load == "" {
+		if err := t.Test(); err != nil {
+			return err
+		}
+	} else {
+		if err := t.Load(); err != nil {
+			return err
+		}
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
 		return err

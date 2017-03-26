@@ -33,6 +33,20 @@ type Tester struct {
 	Results []*cover.Profile
 }
 
+// Load loads pre-prepared coverage files instead of running 'go test'
+func (t *Tester) Load() error {
+	files, err := filepath.Glob(t.setup.Load)
+	if err != nil {
+		return errors.Wrap(err, "Error loading coverage files")
+	}
+	for _, fpath := range files {
+		if err := t.processCoverageFile(fpath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Test initiates the tests and merges the coverage files
 func (t *Tester) Test() error {
 
