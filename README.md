@@ -112,8 +112,7 @@ courtney -t="-count=2" -t="-parallel=4"
 ### Verbose: -v
 `Verbose output`
 
-All the output from the `go test -v` command is shown. This also shows snippets 
-of missing code when in `-e` mode. 
+All the output from the `go test -v` command is shown.
 
 # Output
 Courtney will fail if the tests fail. If the tests succeed, it will create or

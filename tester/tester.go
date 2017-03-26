@@ -117,17 +117,7 @@ func (t *Tester) Enforce() error {
 		return nil
 	}
 
-	if !t.setup.Verbose {
-		s := "Error: untested code:\n"
-		for name, blocks := range untested {
-			for _, b := range blocks {
-				s += fmt.Sprintf("%s:%d-%d\n", name, b.StartLine, b.EndLine)
-			}
-		}
-		return errors.New(s)
-	}
-
-	fmt.Fprintln(t.setup.Env.Stdout(), "Untested code:")
+	var s string
 	for name, blocks := range untested {
 		fpath, err := t.setup.Paths.FilePath(name)
 		if err != nil {
@@ -139,12 +129,12 @@ func (t *Tester) Enforce() error {
 		}
 		lines := strings.Split(string(by), "\n")
 		for _, b := range blocks {
-			fmt.Fprintf(t.setup.Env.Stdout(), "%s:%d-%d:\n", name, b.StartLine, b.EndLine)
+			s += fmt.Sprintf("%s:%d-%d:\n", name, b.StartLine, b.EndLine)
 			undented := undent(lines[b.StartLine-1 : b.EndLine])
-			fmt.Fprintln(t.setup.Env.Stdout(), strings.Join(undented, "\n"))
+			s += strings.Join(undented, "\n")
 		}
 	}
-	return errors.New("Error: untested code")
+	return errors.Errorf("Error - untested code:\n%s", s)
 
 }
 
@@ -235,6 +225,7 @@ func (t *Tester) processDir(dir string) error {
 		args = append(args, "-v")
 	}
 	if len(t.setup.TestArgs) > 0 {
+		// notest
 		args = append(args, t.setup.TestArgs...)
 	}
 	if t.setup.Verbose {

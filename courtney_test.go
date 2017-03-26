@@ -70,33 +70,30 @@ func TestRun(t *testing.T) {
 		Enforce: true,
 		Verbose: true,
 	}
-	if err := Run(setup); err != nil {
-		if !strings.Contains(err.Error(), "Error: untested code") {
-			t.Fatalf("Error running program in %s: %s", name, err)
-		}
+	err = Run(setup)
+	if err == nil {
+		t.Fatalf("Error in %s. Run should error.", name)
+	}
+	expected := `Error - untested code:
+ns/a/a.go:8-11:
+	func Bar(i int) int {
+		i++
+		return i
+	}`
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("Error in %s err. Got: \n%s\nExpected to contain: \n%s\n", name, err.Error(), expected)
 	}
 
 	coverage, err := ioutil.ReadFile(filepath.Join(pdir, "coverage.out"))
 	if err != nil {
 		t.Fatalf("Error reading coverage file in %s: %s", name, err)
 	}
-	expected := `mode: set
+	expected = `mode: set
 ns/a/a.go:3.24,6.5 2 1
 ns/a/a.go:8.24,11.5 2 0
 `
 	if string(coverage) != expected {
 		t.Fatalf("Error in %s coverage. Got: \n%s\nExpected: \n%s\n", name, string(coverage), expected)
-	}
-
-	expected = `Untested code:
-ns/a/a.go:8-11:
-	func Bar(i int) int {
-		i++
-		return i
-	}`
-
-	if !strings.Contains(sout.String(), expected) {
-		t.Fatalf("Error in %s stdout. Got: \n%s\nExpected to contain: \n%s\n", name, sout.String(), expected)
 	}
 
 	setup = &shared.Setup{
@@ -174,9 +171,7 @@ ns/a/a.go:8.24,11.5 2 1
 		Load:  "*.out",
 	}
 	if err := Run(setup); err != nil {
-		if !strings.Contains(err.Error(), "Error: untested code") {
-			t.Fatalf("Error running program in %s: %s", name, err)
-		}
+		t.Fatalf("Error running program in %s: %s", name, err)
 	}
 
 	coverage, err := ioutil.ReadFile(filepath.Join(pdir, "coverage.out"))

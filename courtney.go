@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
+	"os"
 
 	"strings"
+
+	"fmt"
 
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
@@ -36,7 +38,8 @@ func main() {
 		Load:     *loadFlag,
 	}
 	if err := Run(setup); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 

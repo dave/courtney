@@ -82,10 +82,19 @@ func TestTester_Enforce(t *testing.T) {
 		Paths:   patsy.NewCache(env),
 		Enforce: true,
 	}
+	b, err := builder.New(env, "ns")
+	if err != nil {
+		t.Fatalf("Error creating builder: %s", err)
+	}
+	defer b.Cleanup()
+	b.Package("a", map[string]string{
+		"a.go": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20",
+	})
+
 	ts := tester.New(setup)
 	ts.Results = []*cover.Profile{
 		{
-			FileName: "a",
+			FileName: "ns/a/a.go",
 			Mode:     "b",
 			Blocks: []cover.ProfileBlock{
 				{Count: 1},
@@ -100,11 +109,11 @@ func TestTester_Enforce(t *testing.T) {
 		{Count: 1, StartLine: 1, EndLine: 2},
 		{Count: 0, StartLine: 5, EndLine: 10},
 	}
-	err := ts.Enforce()
+	err = ts.Enforce()
 	if err == nil {
 		t.Fatal("Error enforcing - should get error, got nil")
 	}
-	expected := "Error: untested code:\na:5-10\n"
+	expected := "Error - untested code:\nns/a/a.go:5-10:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10"
 	if err.Error() != expected {
 		t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
 	}
@@ -120,7 +129,7 @@ func TestTester_Enforce(t *testing.T) {
 	if err == nil {
 		t.Fatal("Error enforcing - should get error, got nil")
 	}
-	expected = "Error: untested code:\na:5-15\na:17-20\n"
+	expected = "Error - untested code:\nns/a/a.go:5-15:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10\n\t11\n\t12\n\t13\n\t14\n\t15ns/a/a.go:17-20:\n\t17\n\t18\n\t19\n\t20"
 	if err.Error() != expected {
 		t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
 	}
