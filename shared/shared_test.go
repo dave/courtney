@@ -3,10 +3,10 @@ package shared_test
 import (
 	"testing"
 
-	"github.com/dave/courtney/shared"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
 	"github.com/dave/patsy/vos"
+	"github.com/triarius/courtney/shared"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -106,4 +106,17 @@ func TestParseArgs(t *testing.T) {
 		t.Fatalf("Error in ParseArgs - wrong package. Expected %#v. Got %#v.", expectedB, setup.Packages[0])
 	}
 
+	setup = shared.Setup{
+		Env:          env,
+		Paths:        paths,
+		ExcludePaths: map[string]bool{"b": true},
+	}
+
+	// should ignore "b" and all children
+	if err := setup.Parse([]string{"./..."}); err != nil {
+		t.Fatal(err)
+	}
+	if len(setup.Packages) != 0 {
+		t.Fatalf("Error in ParseArgs - wrong number of packages. Expected 1, got %d", len(setup.Packages))
+	}
 }

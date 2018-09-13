@@ -12,7 +12,7 @@ import (
 
 	"github.com/dave/astrid"
 	"github.com/dave/brenda"
-	"github.com/dave/courtney/shared"
+	"github.com/triarius/courtney/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/loader"
 )

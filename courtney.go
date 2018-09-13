@@ -2,17 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
-
 	"strings"
 
-	"fmt"
-
-	"github.com/dave/courtney/scanner"
-	"github.com/dave/courtney/shared"
-	"github.com/dave/courtney/tester"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/vos"
+	"github.com/triarius/courtney/scanner"
+	"github.com/triarius/courtney/shared"
+	"github.com/triarius/courtney/tester"
 )
 
 func main() {
@@ -22,6 +20,7 @@ func main() {
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	outputFlag := flag.String("o", "", "Override coverage file location")
+	exludePathsFlag := flag.String("x", "", "Exclude subdirs from tests")
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
 	loadFlag := flag.String("l", "", "Load coverage file(s) instead of running 'go test'")
@@ -29,14 +28,20 @@ func main() {
 	flag.Parse()
 
 	setup := &shared.Setup{
-		Env:      env,
-		Paths:    patsy.NewCache(env),
-		Enforce:  *enforceFlag,
-		Verbose:  *verboseFlag,
-		Output:   *outputFlag,
-		TestArgs: argsFlag.args,
-		Load:     *loadFlag,
+		Env:          env,
+		Paths:        patsy.NewCache(env),
+		Enforce:      *enforceFlag,
+		Verbose:      *verboseFlag,
+		ExcludePaths: make(map[string]bool),
+		Output:       *outputFlag,
+		TestArgs:     argsFlag.args,
+		Load:         *loadFlag,
 	}
+
+	for _, path := range strings.Split(*exludePathsFlag, ",") {
+		setup.ExcludePaths[path] = true
+	}
+
 	if err := Run(setup); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -45,7 +50,6 @@ func main() {
 
 // Run initiates the command with the provided setup
 func Run(setup *shared.Setup) error {
-
 	if err := setup.Parse(flag.Args()); err != nil {
 		return err
 	}
@@ -54,6 +58,7 @@ func Run(setup *shared.Setup) error {
 	if err := s.LoadProgram(); err != nil {
 		return err
 	}
+
 	if err := s.ScanPackages(); err != nil {
 		return err
 	}
@@ -68,17 +73,16 @@ func Run(setup *shared.Setup) error {
 			return err
 		}
 	}
+
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
 		return err
 	}
+
 	if err := t.Save(); err != nil {
 		return err
 	}
-	if err := t.Enforce(); err != nil {
-		return err
-	}
 
-	return nil
+	return t.Enforce()
 }
 
 type argsValue struct {
