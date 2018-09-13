@@ -11,7 +11,7 @@ import (
 
 	"os"
 
-	"github.com/dave/courtney/shared"
+	"github.com/triarius/courtney/shared"
 	"github.com/dave/patsy"
 	"github.com/dave/patsy/builder"
 	"github.com/dave/patsy/vos"
