@@ -219,6 +219,11 @@ func (t *Tester) processDir(dir string) error {
 		pkgs = append(pkgs, s.Path)
 	}
 	args = append(args, "test")
+	if t.setup.Short {
+		// notest
+		// TODO: add test
+		args = append(args, "-short")
+	}
 	args = append(args, fmt.Sprintf("-coverpkg=%s", strings.Join(pkgs, ",")))
 	args = append(args, fmt.Sprintf("-coverprofile=%s", coverfile))
 	if t.setup.Verbose {

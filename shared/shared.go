@@ -17,6 +17,7 @@ type Setup struct {
 	Paths    *patsy.Cache
 	Enforce  bool
 	Verbose  bool
+	Short    bool
 	Load     string
 	Output   string
 	TestArgs []string
