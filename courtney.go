@@ -22,6 +22,7 @@ func main() {
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
+	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
@@ -35,6 +36,7 @@ func main() {
 		Enforce:  *enforceFlag,
 		Verbose:  *verboseFlag,
 		Short:    *shortFlag,
+		Timeout:  *timeoutFlag,
 		Output:   *outputFlag,
 		TestArgs: argsFlag.args,
 		Load:     *loadFlag,

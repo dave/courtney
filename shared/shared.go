@@ -18,6 +18,7 @@ type Setup struct {
 	Enforce  bool
 	Verbose  bool
 	Short    bool
+	Timeout  string
 	Load     string
 	Output   string
 	TestArgs []string
