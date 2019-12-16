@@ -2,11 +2,10 @@ package scanner
 
 import (
 	"go/ast"
-	"go/build"
 	"go/constant"
 	"go/token"
 
-	"go/parser"
+	"golang.org/x/tools/go/packages"
 
 	"go/types"
 
@@ -14,20 +13,19 @@ import (
 	"github.com/dave/brenda"
 	"github.com/dave/courtney/shared"
 	"github.com/pkg/errors"
-	"golang.org/x/tools/go/loader"
 )
 
 // CodeMap scans a number of packages for code to exclude
 type CodeMap struct {
 	setup    *shared.Setup
-	prog     *loader.Program
+	pkgs     []*packages.Package
 	Excludes map[string]map[int]bool
 }
 
 // PackageMap scans a single package for code to exclude
 type PackageMap struct {
 	*CodeMap
-	info *loader.PackageInfo
+	pkg  *packages.Package
 	fset *token.FileSet
 }
 
@@ -61,32 +59,43 @@ func (c *CodeMap) addExclude(fpath string, line int) {
 // LoadProgram uses the loader package to load and process the source for a
 // number or packages.
 func (c *CodeMap) LoadProgram() error {
-	ctxt := build.Default
-	ctxt.GOPATH = c.setup.Env.Getenv("GOPATH")
+
+	var patterns []string
+	for _, p := range c.setup.Packages {
+		patterns = append(patterns, p.Path)
+	}
 	wd, err := c.setup.Env.Getwd()
 	if err != nil {
 		return err
 	}
-	conf := loader.Config{Build: &ctxt, Cwd: wd, ParserMode: parser.ParseComments}
+	cfg := &packages.Config{Dir: wd, Mode: packages.LoadSyntax}
+	pkgs, err := packages.Load(cfg, patterns...)
 
-	for _, p := range c.setup.Packages {
-		conf.Import(p.Path)
-	}
-	prog, err := conf.Load()
+	/*
+		ctxt := build.Default
+		ctxt.GOPATH = c.setup.Env.Getenv("GOPATH")
+
+		conf := loader.Config{Build: &ctxt, Cwd: wd, ParserMode: parser.ParseComments}
+
+		for _, p := range c.setup.Packages {
+			conf.Import(p.Path)
+		}
+		prog, err := conf.Load()
+	*/
 	if err != nil {
 		return errors.Wrap(err, "Error loading config")
 	}
-	c.prog = prog
+	c.pkgs = pkgs
 	return nil
 }
 
 // ScanPackages scans the imported packages
 func (c *CodeMap) ScanPackages() error {
-	for _, p := range c.prog.Imported {
+	for _, p := range c.pkgs {
 		pm := &PackageMap{
 			CodeMap: c,
-			info:    p,
-			fset:    c.prog.Fset,
+			pkg:     p,
+			fset:    p.Fset,
 		}
 		if err := pm.ScanPackage(); err != nil {
 			return err
@@ -97,11 +106,11 @@ func (c *CodeMap) ScanPackages() error {
 
 // ScanPackage scans a single package
 func (p *PackageMap) ScanPackage() error {
-	for _, f := range p.info.Files {
+	for _, f := range p.pkg.Syntax {
 		fm := &FileMap{
 			PackageMap: p,
 			file:       f,
-			matcher:    astrid.NewMatcher(p.info.Info.Uses, p.info.Info.Defs),
+			matcher:    astrid.NewMatcher(p.pkg.TypesInfo.Uses, p.pkg.TypesInfo.Defs),
 		}
 		if err := fm.FindExcludes(); err != nil {
 			return err
@@ -228,7 +237,7 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 }
 
 func (f *FileMap) inspectCase(stmt *ast.CaseClause, falseExpr ...ast.Expr) error {
-	s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, f.boolOr(stmt.List), falseExpr...)
+	s := brenda.NewSolver(f.fset, f.pkg.TypesInfo.Uses, f.pkg.TypesInfo.Defs, f.boolOr(stmt.List), falseExpr...)
 	if err := s.SolveTrue(); err != nil {
 		return err
 	}
@@ -253,7 +262,7 @@ func (f *FileMap) boolOr(list []ast.Expr) ast.Expr {
 func (f *FileMap) inspectIf(stmt *ast.IfStmt, falseExpr ...ast.Expr) error {
 
 	// main if block
-	s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, stmt.Cond, falseExpr...)
+	s := brenda.NewSolver(f.fset, f.pkg.TypesInfo.Uses, f.pkg.TypesInfo.Defs, stmt.Cond, falseExpr...)
 	if err := s.SolveTrue(); err != nil {
 		return err
 	}
@@ -263,7 +272,7 @@ func (f *FileMap) inspectIf(stmt *ast.IfStmt, falseExpr ...ast.Expr) error {
 	case *ast.BlockStmt:
 
 		// else block
-		s := brenda.NewSolver(f.fset, f.info.Info.Uses, f.info.Info.Defs, stmt.Cond, falseExpr...)
+		s := brenda.NewSolver(f.fset, f.pkg.TypesInfo.Uses, f.pkg.TypesInfo.Defs, stmt.Cond, falseExpr...)
 		if err := s.SolveFalse(); err != nil {
 			return err
 		}
@@ -465,7 +474,7 @@ func (f *FileMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
 }
 
 func (f *FileMap) isError(v ast.Expr) bool {
-	if n, ok := f.info.TypeOf(v).(*types.Named); ok {
+	if n, ok := f.pkg.TypesInfo.TypeOf(v).(*types.Named); ok {
 		o := n.Obj()
 		return o != nil && o.Pkg() == nil && o.Name() == "error"
 	}
@@ -473,12 +482,12 @@ func (f *FileMap) isError(v ast.Expr) bool {
 }
 
 func (f *FileMap) isNil(v ast.Expr) bool {
-	t := f.info.Types[v]
+	t := f.pkg.TypesInfo.Types[v]
 	return t.IsNil()
 }
 
 func (f *FileMap) isZero(v ast.Expr) bool {
-	t := f.info.Types[v]
+	t := f.pkg.TypesInfo.Types[v]
 	if t.IsNil() {
 		return true
 	}

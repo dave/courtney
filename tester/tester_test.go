@@ -199,6 +199,7 @@ func TestTester_Test(t *testing.T) {
 			args: args{"ns/..."},
 			packages: packages{
 				"a": files{
+					"go.mod": "module a",
 					"a.go": `package a
 						func Foo(i int) int {
 							i++ // 0
@@ -213,6 +214,7 @@ func TestTester_Test(t *testing.T) {
 			args: args{"ns/..."},
 			packages: packages{
 				"a": files{
+					"go.mod": "module a",
 					"a.go": `package a
 					
 						func Foo(i int) int {
@@ -243,6 +245,7 @@ func TestTester_Test(t *testing.T) {
 			args: args{"ns/a", "ns/b"},
 			packages: packages{
 				"a": files{
+					"go.mod": "module a",
 					"a.go": `package a
 					
 						func Foo(i int) int {
@@ -268,6 +271,7 @@ func TestTester_Test(t *testing.T) {
 					`,
 				},
 				"b": files{
+					"go.mod":       "module b",
 					"b_exclude.go": `package b`,
 					"b_test.go": `package b
 						
@@ -321,8 +325,11 @@ func TestTester_Test(t *testing.T) {
 				t.Fatalf("Error in '%s' while running test: %s", name, err)
 			}
 
+			fmt.Printf("Results: %#v\n", ts.Results)
+
 			filesInOutput := map[string]bool{}
 			for _, p := range ts.Results {
+
 				filesInOutput[p.FileName] = true
 				pkg, fname := path.Split(p.FileName)
 				dir, err := patsy.Dir(env, pkg)
@@ -349,8 +356,12 @@ func TestTester_Test(t *testing.T) {
 					}
 				}
 			}
+			fmt.Printf("%#v\n", filesInOutput)
 			for pname, files := range test.packages {
 				for fname := range files {
+					if strings.HasSuffix(fname, ".mod") {
+						continue
+					}
 					if strings.HasSuffix(fname, "_test.go") {
 						continue
 					}
@@ -360,6 +371,7 @@ func TestTester_Test(t *testing.T) {
 						continue
 					}
 					fullFilename := path.Join("ns", pname, fname)
+					fmt.Println(fullFilename)
 					if _, ok := filesInOutput[fullFilename]; !ok {
 						t.Fatalf("Error in '%s' - %s does not appear in coverge output", name, fullFilename)
 					}
