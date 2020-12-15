@@ -1,6 +1,7 @@
 package tester
 
 import (
+	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,8 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"crypto/md5"
 
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester/logger"
@@ -245,6 +244,7 @@ func (t *Tester) processDir(dir string) error {
 			strings.Join(append([]string{"go"}, args...), " "),
 		)
 	}
+
 	exe := exec.Command("go", args...)
 	exe.Dir = dir
 	exe.Env = t.setup.Env.Environ()
