@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
-
 	"strings"
 
-	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
@@ -42,44 +42,43 @@ func main() {
 		Load:     *loadFlag,
 	}
 	if err := Run(setup); err != nil {
-		fmt.Println(err)
+		fmt.Printf("%+v", err)
 		os.Exit(1)
 	}
 }
 
 // Run initiates the command with the provided setup
 func Run(setup *shared.Setup) error {
-
 	if err := setup.Parse(flag.Args()); err != nil {
-		return err
+		return errors.Wrapf(err, "Parse")
 	}
 
 	s := scanner.New(setup)
 	if err := s.LoadProgram(); err != nil {
-		return err
+		return errors.Wrapf(err, "LoadProgram")
 	}
 	if err := s.ScanPackages(); err != nil {
-		return err
+		return errors.Wrapf(err, "ScanPackages")
 	}
 
 	t := tester.New(setup)
 	if setup.Load == "" {
 		if err := t.Test(); err != nil {
-			return err
+			return errors.Wrapf(err, "Test")
 		}
 	} else {
 		if err := t.Load(); err != nil {
-			return err
+			return errors.Wrapf(err, "Load")
 		}
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
-		return err
+		return errors.Wrapf(err, "ProcessExcludes")
 	}
 	if err := t.Save(); err != nil {
-		return err
+		return errors.Wrapf(err, "Save")
 	}
 	if err := t.Enforce(); err != nil {
-		return err
+		return errors.Wrapf(err, "Enforce")
 	}
 
 	return nil
