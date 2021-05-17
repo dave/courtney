@@ -1,6 +1,7 @@
 package tester
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester/logger"
@@ -29,6 +31,7 @@ func New(setup *shared.Setup) *Tester {
 type Tester struct {
 	setup   *shared.Setup
 	cover   string
+	mu      sync.Mutex
 	Results []*cover.Profile
 }
 
@@ -55,11 +58,58 @@ func (t *Tester) Test() error {
 	}
 	defer os.RemoveAll(t.cover)
 
+	ctx, closeCtx := context.WithCancel(context.Background())
+
+	// run parallel worker routines to process dirs
+	maxParallel := t.setup.Parallel
+	if maxParallel < 1 {
+		maxParallel = 1
+	}
+	work := make(chan string, len(t.setup.Packages))
+	done := make(chan error, maxParallel)
+	for i := 0; i < maxParallel; i++ {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					done <- nil
+					return
+
+				case dir := <-work:
+					// when channel is empty and closed we'll get a zero value
+					if dir == "" {
+						done <- nil
+						return
+					}
+
+					if err := t.processDir(dir); err != nil {
+						done <- err
+						return
+					}
+				}
+			}
+		}()
+	}
+
+	// distribute the dirs to test to the worker routines
 	for _, spec := range t.setup.Packages {
-		if err := t.processDir(spec.Dir); err != nil {
+		work <- spec.Dir
+	}
+
+	// close work channel, the worker routines can continue reading but will get a zero value when out of work
+	close(work)
+
+	// wait for all workers to be done, if any of them error then we return the first error received
+	for i := 0; i < maxParallel; i++ {
+		err := <-done
+		if err != nil {
+			// close ctx to prevent the worker routines from processing anymore
+			closeCtx()
 			return err
 		}
 	}
+
+	closeCtx()
 
 	return nil
 }
@@ -268,6 +318,9 @@ func (t *Tester) processDir(dir string) error {
 }
 
 func (t *Tester) processCoverageFile(filename string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	profiles, err := cover.ParseProfiles(filename)
 	if err != nil {
 		return err
