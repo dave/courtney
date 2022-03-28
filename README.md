@@ -20,6 +20,11 @@ error rather than a panic.
 ### Notest comments
 Blocks or files with a `// notest` comment are excluded.
 
+### Generated code
+Generated code files, that contain the respective comment line that is
+specified by the [Go Team](https://github.com/golang/go/issues/41196) in
+[`go generate`](https://cs.opensource.google/go/go/+/refs/tags/go1.18:src/cmd/go/internal/generate/generate.go;l=66-73).
+
 ### Blocks returning a error tested to be non-nil
 We only exclude blocks where the error being returned has been tested to be 
 non-nil, so:

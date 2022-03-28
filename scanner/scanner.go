@@ -1,11 +1,14 @@
 package scanner
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/constant"
 	"go/token"
 	"go/types"
+	"os"
+	"regexp"
 
 	"github.com/dave/astrid"
 	"github.com/dave/brenda"
@@ -116,6 +119,8 @@ func (c *CodeMap) ScanPackages() error {
 	return nil
 }
 
+var doNotEditRe = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\.$`)
+
 // ScanPackage scans a single package
 func (p *PackageMap) ScanPackage() error {
 	for _, f := range p.pkg.Syntax {
@@ -127,6 +132,20 @@ func (p *PackageMap) ScanPackage() error {
 		}
 		if err := fm.FindExcludes(); err != nil {
 			return errors.WithStack(err)
+		}
+	}
+
+	// Exclude complete files, if the code is generated.
+	for _, f := range p.pkg.GoFiles {
+		body, err := os.ReadFile(f)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if !doNotEditRe.Match(body) {
+			continue
+		}
+		for i := range bytes.Split(body, []byte("\n")) {
+			p.addExclude(f, i+1)
 		}
 	}
 	return nil
