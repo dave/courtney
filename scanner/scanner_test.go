@@ -715,8 +715,9 @@ func test(t *testing.T, tests map[string]string) {
 
 		paths := patsy.NewCache(env)
 		setup := &shared.Setup{
-			Env:   env,
-			Paths: paths,
+			Env:                  env,
+			Paths:                paths,
+			ExcludeGeneratedCode: true,
 		}
 		if err := setup.Parse([]string{ppath}); err != nil {
 			t.Fatalf("Error parsing args in %s: %+v", name, err)

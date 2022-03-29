@@ -132,17 +132,19 @@ func (p *PackageMap) ScanPackage() error {
 		}
 	}
 
-	// Exclude complete files, if the code is generated.
-	for _, f := range p.pkg.GoFiles {
-		body, err := os.ReadFile(f)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if !isGenerated(body) {
-			continue
-		}
-		for i := range bytes.Split(body, []byte("\n")) {
-			p.addExclude(f, i+1)
+	if p.setup.ExcludeGeneratedCode {
+		// Exclude complete files, if the code is generated.
+		for _, f := range p.pkg.GoFiles {
+			body, err := os.ReadFile(f)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			if !isGenerated(body) {
+				continue
+			}
+			for i := range bytes.Split(body, []byte("\n")) {
+				p.addExclude(f, i+1)
+			}
 		}
 	}
 	return nil

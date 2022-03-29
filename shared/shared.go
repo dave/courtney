@@ -10,16 +10,17 @@ import (
 // Setup holds globals, environment and command line flags for the courtney
 // command
 type Setup struct {
-	Env      vos.Env
-	Paths    *patsy.Cache
-	Enforce  bool
-	Verbose  bool
-	Short    bool
-	Timeout  string
-	Load     string
-	Output   string
-	TestArgs []string
-	Packages []PackageSpec
+	Env                  vos.Env
+	Paths                *patsy.Cache
+	Enforce              bool
+	Verbose              bool
+	Short                bool
+	Timeout              string
+	Load                 string
+	Output               string
+	TestArgs             []string
+	ExcludeGeneratedCode bool
+	Packages             []PackageSpec
 }
 
 // PackageSpec identifies a package by dir and path
