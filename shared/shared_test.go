@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/dave/courtney/shared"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/vos"
+	"github.com/dave/courtney/patsy"
+	"github.com/dave/courtney/patsy/builder"
+	"github.com/dave/courtney/patsy/vos"
 )
 
 func TestParseArgs(t *testing.T) {

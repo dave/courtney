@@ -7,8 +7,8 @@ import (
 	"go/token"
 	"go/types"
 
-	"github.com/dave/astrid"
-	"github.com/dave/brenda"
+	"github.com/dave/courtney/astrid"
+	"github.com/dave/courtney/brenda"
 	"github.com/dave/courtney/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/packages"

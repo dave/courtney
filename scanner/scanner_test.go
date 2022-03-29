@@ -9,9 +9,9 @@ import (
 
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/vos"
+	"github.com/dave/courtney/patsy"
+	"github.com/dave/courtney/patsy/builder"
+	"github.com/dave/courtney/patsy/vos"
 )
 
 func TestSingle(t *testing.T) {
@@ -19,7 +19,7 @@ func TestSingle(t *testing.T) {
 		"single": `package a
 
 			func wrap(error) error
-			
+
 			func a() error {
 				var a bool
 				var err error
@@ -39,7 +39,7 @@ func TestSingle(t *testing.T) {
 func TestSwitchCase(t *testing.T) {
 	tests := map[string]string{
 		"simple switch": `package a
-			
+
 			func a() error {
 				var err error
 				switch {
@@ -50,21 +50,21 @@ func TestSwitchCase(t *testing.T) {
 			}
 		`,
 		"switch multi": `package a
-			
+
 			func a() error {
 				var a bool
 				var err error
 				switch {
 				case err == nil, a:
 					return err
-				default: 
+				default:
 					return err // *
 				}
 				return nil
 			}
 		`,
 		"simple switch ignored": `package a
-			
+
 			func a() error {
 				var a bool
 				var err error
@@ -76,7 +76,7 @@ func TestSwitchCase(t *testing.T) {
 			}
 		`,
 		"complex switch": `package a
-		
+
 			func foo() error {
 				var err error
 				var b, c bool
@@ -99,7 +99,7 @@ func TestSwitchCase(t *testing.T) {
 func TestNamedParameters(t *testing.T) {
 	tests := map[string]string{
 		"named parameters simple": `package a
-			
+
 			func a() (err error) {
 				if err != nil {
 					return // *
@@ -108,7 +108,7 @@ func TestNamedParameters(t *testing.T) {
 			}
 		`,
 		"named parameters ignored": `package a
-			
+
 			func a() {
 				var err error
 				if err != nil {
@@ -118,7 +118,7 @@ func TestNamedParameters(t *testing.T) {
 			}
 		`,
 		"named parameters 2": `package a
-			
+
 			func a() (i int, err error) {
 				i = 1
 				if err != nil {
@@ -128,7 +128,7 @@ func TestNamedParameters(t *testing.T) {
 			}
 		`,
 		"named parameters must be last": `package a
-			
+
 			func a() (err error, i int) {
 				i = 1
 				if err != nil {
@@ -138,13 +138,13 @@ func TestNamedParameters(t *testing.T) {
 			}
 		`,
 		"named parameters must be not nil": `package a
-			
+
 			func a() (err error) {
 				return
 			}
 		`,
 		"named parameters func lit": `package a
-			
+
 			func a() {
 				func () (err error) {
 					if err != nil {
@@ -161,7 +161,7 @@ func TestNamedParameters(t *testing.T) {
 func TestBool(t *testing.T) {
 	tests := map[string]string{
 		"wrap1": `package a
-			
+
 			func a() error {
 				var wrap func(error) error
 				var err error
@@ -172,7 +172,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap ignored": `package a
-			
+
 			func a() int {
 				var wrap func(error) int
 				var err error
@@ -183,7 +183,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap2": `package a
-			
+
 			func a() error {
 				var wrap func(error) error
 				var err error
@@ -195,7 +195,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap3": `package a
-			
+
 			func a() error {
 				var wrap func(error) error
 				var err error
@@ -208,7 +208,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap4": `package a
-			
+
 			func a() error {
 				var wrap func(error) error
 				var err error
@@ -220,7 +220,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap5": `package a
-			
+
 			func a() error {
 				var wrap func(error) error
 				var err error
@@ -232,7 +232,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"wrap no tuple": `package a
-			
+
 			func a() (int, error) {
 				var wrap func(error) (int, error)
 				var err error
@@ -243,9 +243,9 @@ func TestBool(t *testing.T) {
 			}
 		`,
 		"logical and first": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err != nil && 1 == 1 {
@@ -255,9 +255,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical and second": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 && err != nil {
@@ -267,9 +267,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical and third": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 && 2 == 2 && err != nil {
@@ -279,9 +279,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical and brackets": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 && (2 == 2 && err != nil) {
@@ -291,9 +291,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical or first": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err == nil || 1 == 1 {
@@ -305,9 +305,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical or second": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 || err == nil {
@@ -319,9 +319,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical or third": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 || 2 == 2 || err == nil {
@@ -333,9 +333,9 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"logical or brackets": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if 1 == 1 || (2 == 2 || err == nil) {
@@ -347,7 +347,7 @@ func TestBool(t *testing.T) {
 			}
 			`,
 		"complex": `package a
-		
+
 			func foo() error {
 				var err error
 				var b, c bool
@@ -369,9 +369,9 @@ func TestBool(t *testing.T) {
 func TestGeneral(t *testing.T) {
 	tests := map[string]string{
 		"simple": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err != nil {
@@ -381,9 +381,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"wrong way round": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if nil != err {
@@ -393,9 +393,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"not else block": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err != nil {
@@ -407,9 +407,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"any name": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, foo := fmt.Println()
 				if foo != nil {
@@ -419,9 +419,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"don't mark if ==": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err == nil {
@@ -431,9 +431,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"use else block if err == nil": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				_, err := fmt.Println()
 				if err == nil {
@@ -445,9 +445,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"support if with init form": `package a
-			
+
 			import "fmt"
-			
+
 			func a() error {
 				if _, err := fmt.Println(); err != nil {
 					return err // *
@@ -456,9 +456,9 @@ func TestGeneral(t *testing.T) {
 			}
 			`,
 		"only in if block": `package foo
-			
+
 			import "fmt"
-			
+
 			func Baz() error {
 				return fmt.Errorf("foo")
 			}
@@ -470,16 +470,16 @@ func TestGeneral(t *testing.T) {
 func TestZeroValues(t *testing.T) {
 	tests := map[string]string{
 		"only return if all other return vars are zero": `package a
-			
+
 			import "fmt"
-			
+
 			type iface interface{}
-			
+
 			type strct struct {
 				a int
 				b string
 			}
-			
+
 			func Foo() (iface, bool, int, string, float32, strct, strct, error) {
 				if _, err := fmt.Println(); err != nil {
 					return 1, false, 0, "", 0.0, strct{0, ""}, strct{a: 0, b: ""}, err
@@ -521,13 +521,13 @@ func TestZeroValues(t *testing.T) {
 func TestSelectorExpressions(t *testing.T) {
 	tests := map[string]string{
 		"selector expression": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				type T struct {
 					Err error
 				}
 				var b T
-				if b.Err != nil {   
+				if b.Err != nil {
 					return b.Err // *
 				}
 				return nil
@@ -540,52 +540,52 @@ func TestSelectorExpressions(t *testing.T) {
 func TestFunctionExpressions(t *testing.T) {
 	tests := map[string]string{
 		"function expression": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				var f func(int) error
-				if f(5) != nil {   
+				if f(5) != nil {
 					return f(5) // *
 				}
 				return nil
 			}
 			`,
 		"function expression params": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				var f func(int) error
-				if f(4) != nil {   
+				if f(4) != nil {
 					return f(5)
 				}
 				return nil
 			}
 			`,
 		"function expression params 2": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				var f func(...int) error
-				if f(4) != nil {   
+				if f(4) != nil {
 					return f(4, 4)
 				}
 				return nil
 			}
 			`,
 		"function expression elipsis": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				var f func(...interface{}) error
 				var a []interface{}
-				if f(a) != nil {   
+				if f(a) != nil {
 					return f(a...)
 				}
 				return nil
 			}
 			`,
 		"function expression elipsis 2": `package foo
-			
-			func Baz() error { 
+
+			func Baz() error {
 				var f func(...interface{}) error
 				var a []interface{}
-				if f(a) != nil {   
+				if f(a) != nil {
 					return f(a) // *
 				}
 				return nil
@@ -598,7 +598,7 @@ func TestFunctionExpressions(t *testing.T) {
 func TestPanic(t *testing.T) {
 	tests := map[string]string{
 		"panic": `package foo
-			
+
 			func Baz() error {
 				panic("") // *
 			}
@@ -610,13 +610,13 @@ func TestPanic(t *testing.T) {
 func TestComments(t *testing.T) {
 	tests := map[string]string{
 		"scope": `package foo
-			
-			func Baz() int { 
-				i := 1       
-				if i > 1 {   
-					return i 
-				}            
-				             
+
+			func Baz() int {
+				i := 1
+				if i > 1 {
+					return i
+				}
+
 				//notest
 				             // *
 				if i > 2 {   // *
@@ -626,8 +626,8 @@ func TestComments(t *testing.T) {
 			}
 			`,
 		"scope if": `package foo
-			
-			func Baz(i int) int { 
+
+			func Baz(i int) int {
 				if i > 2 {
 					//notest
 					return i // *
@@ -636,7 +636,7 @@ func TestComments(t *testing.T) {
 			}
 			`,
 		"scope file": `package foo
-			
+
 			//notest
 			                      // *
 			func Baz(i int) int { // *
@@ -651,12 +651,12 @@ func TestComments(t *testing.T) {
 			}
 			`,
 		"complex comments": `package foo
-			
+
 			type Logger struct {
 				Enabled bool
 			}
 			func (l Logger) Print(i ...interface{}) {}
-			
+
 			func Foo() {
 				var logger Logger
 				var tokens []interface{}
@@ -669,7 +669,7 @@ func TestComments(t *testing.T) {
 			}
 			`,
 		"case block": `package foo
-			
+
 			func Foo() bool {
 				switch {
 				case true:

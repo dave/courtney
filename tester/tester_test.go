@@ -14,9 +14,9 @@ import (
 
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/vos"
+	"github.com/dave/courtney/patsy"
+	"github.com/dave/courtney/patsy/builder"
+	"github.com/dave/courtney/patsy/vos"
 	"golang.org/x/tools/cover"
 )
 
@@ -217,21 +217,21 @@ func TestTester_Test(t *testing.T) {
 			packages: packages{
 				"a": files{
 					"a.go": `package a
-					
+
 						func Foo(i int) int {
 							i++ // 1
 							return i
 						}
-						
+
 						func Bar(i int) int {
 							i++ // 0
 							return i
 						}
 					`,
 					"a_test.go": `package a
-					
+
 					import "testing"
-					
+
 					func TestFoo(t *testing.T) {
 						i := Foo(1)
 						if i != 2 {
@@ -247,21 +247,21 @@ func TestTester_Test(t *testing.T) {
 			packages: packages{
 				"a": files{
 					"a.go": `package a
-					
+
 						func Foo(i int) int {
 							i++ // 1
 							return i
 						}
-						
+
 						func Bar(i int) int {
 							i++ // 1
 							return i
 						}
 					`,
 					"a_test.go": `package a
-					
+
 					import "testing"
-					
+
 					func TestFoo(t *testing.T) {
 						i := Foo(1)
 						if i != 2 {
@@ -273,12 +273,12 @@ func TestTester_Test(t *testing.T) {
 				"b": files{
 					"b_exclude.go": `package b`,
 					"b_test.go": `package b
-						
+
 						import (
 							"testing"
 							"ns/a"
 						)
-						
+
 						func TestBar(t *testing.T) {
 							i := a.Bar(1)
 							if i != 2 {

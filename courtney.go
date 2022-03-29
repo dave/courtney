@@ -11,8 +11,8 @@ import (
 	"github.com/dave/courtney/scanner"
 	"github.com/dave/courtney/shared"
 	"github.com/dave/courtney/tester"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/vos"
+	"github.com/dave/courtney/patsy"
+	"github.com/dave/courtney/patsy/vos"
 )
 
 func main() {

@@ -13,9 +13,9 @@ import (
 	"os"
 
 	"github.com/dave/courtney/shared"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/builder"
-	"github.com/dave/patsy/vos"
+	"github.com/dave/courtney/patsy"
+	"github.com/dave/courtney/patsy/builder"
+	"github.com/dave/courtney/patsy/vos"
 )
 
 func TestRun(t *testing.T) {
@@ -31,21 +31,21 @@ func TestRun(t *testing.T) {
 
 			_, pdir, err := b.Package("a", map[string]string{
 				"a.go": `package a
-		
+
 			func Foo(i int) int {
 				i++
 				return i
 			}
-			
+
 			func Bar(i int) int {
 				i++
 				return i
 			}
 		`,
 				"a_test.go": `package a
-					
+
 			import "testing"
-			
+
 			func TestFoo(t *testing.T) {
 				i := Foo(1)
 				if i != 2 {
@@ -123,21 +123,21 @@ func TestRun_load(t *testing.T) {
 
 			_, pdir, err := b.Package("a", map[string]string{
 				"a.go": `package a
-		
+
 			func Foo(i int) int {
 				i++
 				return i
 			}
-			
+
 			func Bar(i int) int {
 				i++
 				return i
 			}
 		`,
 				"a_test.go": `package a
-					
+
 			import "testing"
-			
+
 			func TestFoo(t *testing.T) {
 				// In "load" mode, this test will not run.
 				t.Fail()
