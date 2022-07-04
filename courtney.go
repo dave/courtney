@@ -27,19 +27,21 @@ func main() {
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
 	loadFlag := flag.String("l", "", "Load coverage file(s) instead of running 'go test'")
+	excludeGeneratedCodeFlag := flag.Bool("g", false, "Exclude generated code from coverage")
 
 	flag.Parse()
 
 	setup := &shared.Setup{
-		Env:      env,
-		Paths:    patsy.NewCache(env),
-		Enforce:  *enforceFlag,
-		Verbose:  *verboseFlag,
-		Short:    *shortFlag,
-		Timeout:  *timeoutFlag,
-		Output:   *outputFlag,
-		TestArgs: argsFlag.args,
-		Load:     *loadFlag,
+		Env:                  env,
+		Paths:                patsy.NewCache(env),
+		Enforce:              *enforceFlag,
+		Verbose:              *verboseFlag,
+		Short:                *shortFlag,
+		Timeout:              *timeoutFlag,
+		Output:               *outputFlag,
+		TestArgs:             argsFlag.args,
+		Load:                 *loadFlag,
+		ExcludeGeneratedCode: *excludeGeneratedCodeFlag,
 	}
 	if err := Run(setup); err != nil {
 		fmt.Printf("%+v", err)

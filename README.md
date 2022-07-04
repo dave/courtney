@@ -20,6 +20,13 @@ error rather than a panic.
 ### Notest comments
 Blocks or files with a `// notest` comment are excluded.
 
+### Generated code
+Generated code files, that contain the respective comment line that is
+specified by the [Go Team](https://github.com/golang/go/issues/41196) in
+[`go generate`](https://golang.org/s/generatedcode).
+
+This exclude is disabled by default. Use flag `-g` to enable this behavior.
+
 ### Blocks returning a error tested to be non-nil
 We only exclude blocks where the error being returned has been tested to be 
 non-nil, so:
@@ -113,6 +120,11 @@ courtney -t="-count=2" -t="-parallel=4"
 `Verbose output`
 
 All the output from the `go test -v` command is shown.
+
+### Exclude generated code: -g
+`Exclude generated code from coverage`
+
+All generated code is excluded from coverage.
 
 # Output
 Courtney will fail if the tests fail. If the tests succeed, it will create or
