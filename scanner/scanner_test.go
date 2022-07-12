@@ -1,6 +1,7 @@
 package scanner_test
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -682,6 +683,20 @@ func TestComments(t *testing.T) {
 				return false
 			}
 			`,
+		"case block with explanation comment": `package foo
+			
+			func Foo() bool {
+				switch {
+				case true:
+					// notest // this condition is always true
+					if true {       // *
+						return true // *
+					}               // *
+					return false    // *
+				}
+				return false
+			}
+			`,
 	}
 	test(t, tests)
 }
@@ -723,10 +738,15 @@ func test(t *testing.T, tests map[string]string) {
 
 		result := cm.Excludes[filepath.Join(pdir, "a.go")]
 
+		// matches strings like:
+		//   - //notest$
+		//   - // notest$
+		//   - //notest // because this is glue code$
+		//   - // notest // because this is glue code$
+		notest := regexp.MustCompile("//\\s?notest(\\s//\\s?.*)?$")
+
 		for i, line := range strings.Split(source, "\n") {
-			expected := strings.HasSuffix(line, "// *") ||
-				strings.HasSuffix(line, "//notest") ||
-				strings.HasSuffix(line, "// notest")
+			expected := strings.HasSuffix(line, "// *") || notest.MatchString(line)
 			if result[i+1] != expected {
 				t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
 			}

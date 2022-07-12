@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"strings"
 
 	"github.com/dave/astrid"
 	"github.com/dave/brenda"
@@ -182,7 +183,7 @@ func (f *FileMap) findScope(node ast.Node, filter func(ast.Node) bool) ast.Node 
 
 func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
 	for _, cm := range cg.List {
-		if cm.Text != "//notest" && cm.Text != "// notest" {
+		if !strings.HasPrefix(cm.Text, "//notest") && !strings.HasPrefix(cm.Text, "// notest") {
 			continue
 		}
 
