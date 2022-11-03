@@ -19,14 +19,32 @@ func TestSingle(t *testing.T) {
 	tests := map[string]string{
 		"single": `package a
 
-			func wrap(error) error
+			type myError struct{}
+
+			func (e *myError) Error() string {
+				return "I'm an error"
+			}
+
+			type myErrorIntf interface {
+				Error() string
+			}
+			
+			func generate() error
+			func wrap(error) *myError
 			
 			func a() error {
 				var a bool
-				var err error
+				err := generate()
+				var eif myErrorIntf
 				if err != nil {
 					if a { // this line will not be excluded!
 						return wrap(err) // *
+					}
+					if b {
+						return eif // *
+					}
+					if c {
+						return err // *
 					}
 					return wrap(err) // *
 				}

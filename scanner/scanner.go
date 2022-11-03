@@ -412,6 +412,9 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 }
 
 func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
+	if f.isError(expr) {
+		return true
+	}
 	n, ok := expr.(*ast.CallExpr)
 	if !ok {
 		return false
@@ -491,9 +494,41 @@ func (f *FileMap) isErrorReturn(r *ast.ReturnStmt, search ast.Expr) bool {
 }
 
 func (f *FileMap) isError(v ast.Expr) bool {
-	if n, ok := f.pkg.TypesInfo.TypeOf(v).(*types.Named); ok {
+	return f.isErrorType(f.pkg.TypesInfo.TypeOf(v))
+}
+
+func (f *FileMap) isErrorType(t types.Type) bool {
+	switch n := t.(type) {
+	case *types.Interface:
+		return implementsErrorInterface(n)
+	case *types.Named:
 		o := n.Obj()
-		return o != nil && o.Pkg() == nil && o.Name() == "error"
+		if o != nil && o.Pkg() == nil && o.Name() == "error" {
+			// this is the error built-in, go with it
+			return true
+		}
+		if implementsErrorInterface(n) {
+			return true
+		}
+		return f.isErrorType(t.Underlying())
+	case *types.Pointer:
+		return f.isErrorType(n.Elem())
+	}
+	return false
+}
+
+type typeWithMethods interface {
+	NumMethods() int
+	Method(int) *types.Func
+}
+
+func implementsErrorInterface(n typeWithMethods) bool {
+	for i := 0; i < n.NumMethods(); i++ {
+		m := n.Method(i)
+		if m.Name() == "Error" && m.Type().String() == "func() string" {
+			// we implement Error, go with it
+			return true
+		}
 	}
 	return false
 }
