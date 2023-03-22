@@ -1,4 +1,4 @@
-module github.com/dave/courtney
+module github.com/orius123/courtney
 
 go 1.12
 
