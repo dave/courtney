@@ -7,5 +7,5 @@ require (
 	github.com/dave/brenda v1.1.0
 	github.com/dave/patsy v0.0.0-20210517141501-957256f50cba
 	github.com/pkg/errors v0.9.1
-	golang.org/x/tools v0.7.1-0.20230321231433-255eeebbce77
+	golang.org/x/tools v0.19.0
 )
