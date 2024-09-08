@@ -126,7 +126,7 @@ To upload your coverage to [codecov.io](https://codecov.io/) via
 language: go
 go:
   - 1.x
-notificaitons:
+notifications:
   email:
     recipients: <your-email>
     on_failure: always
@@ -145,7 +145,7 @@ For [coveralls.io](https://coveralls.io/), use something like this:
 language: go
 go:
     - 1.x
-notificaitons:
+notifications:
   email:
     recipients: <your-email>
     on_failure: always
