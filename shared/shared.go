@@ -12,6 +12,7 @@ import (
 type Setup struct {
 	Env      vos.Env
 	Paths    *patsy.Cache
+	Parallel int
 	Enforce  bool
 	Verbose  bool
 	Short    bool

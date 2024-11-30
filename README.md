@@ -114,6 +114,11 @@ courtney -t="-count=2" -t="-parallel=4"
 
 All the output from the `go test -v` command is shown.
 
+### Parallel: -p
+`Run test in parallel`
+
+Run multiple test (packages) in parallel, similar to `go test -p`.
+
 # Output
 Courtney will fail if the tests fail. If the tests succeed, it will create or
 overwrite a `coverage.out` file in the current directory.
