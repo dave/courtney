@@ -131,6 +131,7 @@ func (t *Tester) Enforce() error {
 			s += fmt.Sprintf("%s:%d-%d:\n", name, b.StartLine, b.EndLine)
 			undented := undent(lines[b.StartLine-1 : b.EndLine])
 			s += strings.Join(undented, "\n")
+			s += "\n"
 		}
 	}
 	return errors.Errorf("Error - untested code:\n%s", s)

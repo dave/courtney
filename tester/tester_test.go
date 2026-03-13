@@ -115,7 +115,7 @@ func TestTester_Enforce(t *testing.T) {
 			if err == nil {
 				t.Fatal("Error enforcing - should get error, got nil")
 			}
-			expected := "Error - untested code:\nns/a/a.go:6-11:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10"
+			expected := "Error - untested code:\nns/a/a.go:6-11:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10" + "\n"
 			if err.Error() != expected {
 				t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
 			}
@@ -131,7 +131,9 @@ func TestTester_Enforce(t *testing.T) {
 			if err == nil {
 				t.Fatal("Error enforcing - should get error, got nil")
 			}
-			expected = "Error - untested code:\nns/a/a.go:6-16:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10\n\t11\n\t12\n\t13\n\t14\n\t15ns/a/a.go:18-21:\n\t17\n\t18\n\t19\n\t20"
+			expected = "Error - untested code:" + "\n" +
+				"ns/a/a.go:6-16:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10\n\t11\n\t12\n\t13\n\t14\n\t15" + "\n" +
+				"ns/a/a.go:18-21:\n\t17\n\t18\n\t19\n\t20" + "\n"
 			if err.Error() != expected {
 				t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
 			}
