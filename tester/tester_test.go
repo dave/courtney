@@ -76,68 +76,84 @@ func TestTester_ProcessExcludes(t *testing.T) {
 
 func TestTester_Enforce(t *testing.T) {
 	for _, gomod := range []bool{true, false} {
-		t.Run(fmt.Sprintf("gomod=%v", gomod), func(t *testing.T) {
-			env := vos.Mock()
-			setup := &shared.Setup{
-				Env:     env,
-				Paths:   patsy.NewCache(env),
-				Enforce: true,
-			}
-			b, err := builder.New(env, "ns", gomod)
-			if err != nil {
-				t.Fatalf("Error creating builder: %s", err)
-			}
-			defer b.Cleanup()
+		for _, files := range []bool{true, false} {
+			t.Run(fmt.Sprintf("gomod=%v,files=%v", gomod, files), func(t *testing.T) {
+				env := vos.Mock()
+				setup := &shared.Setup{
+					Env:     env,
+					Paths:   patsy.NewCache(env),
+					Enforce: true,
+					Files:   files,
+				}
+				b, err := builder.New(env, "ns", gomod)
+				if err != nil {
+					t.Fatalf("Error creating builder: %s", err)
+				}
+				defer b.Cleanup()
 
-			_, _, _ = b.Package("a", map[string]string{
-				"a.go": "package a\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20",
-			})
+				_, _, _ = b.Package("a", map[string]string{
+					"a.go": "package a\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20",
+				})
 
-			ts := tester.New(setup)
-			ts.Results = []*cover.Profile{
-				{
-					FileName: "ns/a/a.go",
-					Mode:     "b",
-					Blocks: []cover.ProfileBlock{
-						{Count: 1},
+				ts := tester.New(setup)
+				ts.Results = []*cover.Profile{
+					{
+						FileName: "ns/a/a.go",
+						Mode:     "b",
+						Blocks: []cover.ProfileBlock{
+							{Count: 1},
+						},
 					},
-				},
-			}
-			if err := ts.Enforce(); err != nil {
-				t.Fatalf("Error enforcing: %s", err)
-			}
+				}
+				if err := ts.Enforce(); err != nil {
+					t.Fatalf("Error enforcing: %s", err)
+				}
 
-			ts.Results[0].Blocks = []cover.ProfileBlock{
-				{Count: 1, StartLine: 1, EndLine: 2},
-				{Count: 0, StartLine: 6, EndLine: 11},
-			}
-			err = ts.Enforce()
-			if err == nil {
-				t.Fatal("Error enforcing - should get error, got nil")
-			}
-			expected := "Error - untested code:\nns/a/a.go:6-11:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10" + "\n"
-			if err.Error() != expected {
-				t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
-			}
+				ts.Results[0].Blocks = []cover.ProfileBlock{
+					{Count: 1, StartLine: 1, EndLine: 2},
+					{Count: 0, StartLine: 6, EndLine: 11},
+				}
+				err = ts.Enforce()
+				if err == nil {
+					t.Fatal("Error enforcing - should get error, got nil")
+				}
+				prefix := "ns"
+				sep := "-"
+				if setup.Files {
+					prefix = b.Root()
+					sep = " - "
+				}
+				expected := "Error - untested code:" + "\n" +
+					prefix + "/a/a.go:6" + sep + "11:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10" + "\n"
+				if err.Error() != expected {
+					t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
+				}
 
-			// check that blocks next to each other are merged
-			ts.Results[0].Blocks = []cover.ProfileBlock{
-				{Count: 1, StartLine: 1, EndLine: 2},
-				{Count: 0, StartLine: 6, EndLine: 11},
-				{Count: 0, StartLine: 12, EndLine: 16},
-				{Count: 0, StartLine: 18, EndLine: 21},
-			}
-			err = ts.Enforce()
-			if err == nil {
-				t.Fatal("Error enforcing - should get error, got nil")
-			}
-			expected = "Error - untested code:" + "\n" +
-				"ns/a/a.go:6-16:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10\n\t11\n\t12\n\t13\n\t14\n\t15" + "\n" +
-				"ns/a/a.go:18-21:\n\t17\n\t18\n\t19\n\t20" + "\n"
-			if err.Error() != expected {
-				t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
-			}
-		})
+				// check that blocks next to each other are merged
+				ts.Results[0].Blocks = []cover.ProfileBlock{
+					{Count: 1, StartLine: 1, EndLine: 2},
+					{Count: 0, StartLine: 6, EndLine: 11},
+					{Count: 0, StartLine: 12, EndLine: 16},
+					{Count: 0, StartLine: 18, EndLine: 21},
+				}
+				err = ts.Enforce()
+				if err == nil {
+					t.Fatal("Error enforcing - should get error, got nil")
+				}
+				prefix = "ns"
+				sep = "-"
+				if setup.Files {
+					prefix = b.Root()
+					sep = " - "
+				}
+				expected = "Error - untested code:" + "\n" +
+					prefix + "/a/a.go:6" + sep + "16:\n\t5\n\t6\n\t7\n\t8\n\t9\n\t10\n\t11\n\t12\n\t13\n\t14\n\t15" + "\n" +
+					prefix + "/a/a.go:18" + sep + "21:\n\t17\n\t18\n\t19\n\t20" + "\n"
+				if err.Error() != expected {
+					t.Fatalf("Error enforcing - got \n%s\nexpected:\n%s\n", strconv.Quote(err.Error()), strconv.Quote(expected))
+				}
+			})
+		}
 	}
 }
 

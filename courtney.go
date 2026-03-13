@@ -22,6 +22,7 @@ func main() {
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
+	filesFlag := flag.Bool("f", false, "Show file paths not module paths")
 	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
@@ -36,6 +37,7 @@ func main() {
 		Enforce:  *enforceFlag,
 		Verbose:  *verboseFlag,
 		Short:    *shortFlag,
+		Files:    *filesFlag,
 		Timeout:  *timeoutFlag,
 		Output:   *outputFlag,
 		TestArgs: argsFlag.args,

@@ -15,6 +15,7 @@ type Setup struct {
 	Enforce  bool
 	Verbose  bool
 	Short    bool
+	Files    bool
 	Timeout  string
 	Load     string
 	Output   string
