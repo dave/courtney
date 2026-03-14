@@ -20,7 +20,7 @@ error rather than a panic.
 ### Notest comments
 Blocks or files with a `// notest` comment are excluded.
 
-### Blocks returning a error tested to be non-nil
+### Blocks returning an error tested to be non-nil
 We only exclude blocks where the error being returned has been tested to be 
 non-nil, so:
 
@@ -86,7 +86,7 @@ courtney github.com/dave/a/... github.com/dave/b
 ```
 
 # Options
-### Enforce: -e [-f]
+### Enforce: -e \[-f]
 
 `Enforce 100% code coverage.`
 
@@ -96,15 +96,11 @@ ensures any pull request has tests that cover all new code. For example, [here
 is a PR](https://github.com/dave/courtney/pull/5) for this project that lacks 
 tests. As you can see the Travis build failed with a descriptive error. 
 
-If you specify the `-f` flag _in addition to_ `-e`,
-the output of enforce will show the file paths 
-to files with lines that
-lack testing (rather than their module paths).
-These file paths are formatted as standard
-code refs like those produced by compilation errors,
-so that IDEs will recognize them and treat
-them as links to the first line of the untested 
-block.
+If you specify the `-f` flag _in addition to_ `-e`, the output of enforce will
+show the file paths to files with lines that lack testing (rather than their
+module paths). These file paths are formatted as standard code refs like those
+produced by compilation errors, so that IDEs will recognize them and treat them
+as links to the first line of the untested block.
 
 ### Output: -o
 `Override coverage file location.`
