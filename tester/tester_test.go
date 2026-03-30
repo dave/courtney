@@ -157,6 +157,25 @@ func TestTester_Enforce(t *testing.T) {
 	}
 }
 
+func TestTester_Enforce_files_without_enforce(t *testing.T) {
+	env := vos.Mock()
+	setup := &shared.Setup{
+		Env:     env,
+		Paths:   patsy.NewCache(env),
+		Enforce: false,
+		Files:   true,
+	}
+	ts := tester.New(setup)
+	err := ts.Enforce()
+	if err == nil {
+		t.Fatal("Expected error when -f is set without -e, got nil")
+	}
+	expected := "the -f flag requires the -e flag"
+	if err.Error() != expected {
+		t.Fatalf("Got error %q, expected %q", err.Error(), expected)
+	}
+}
+
 func TestTester_Save_output(t *testing.T) {
 	env := vos.Mock()
 	dir, err := ioutil.TempDir("", "")

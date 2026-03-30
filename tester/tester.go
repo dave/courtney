@@ -90,6 +90,9 @@ func (t *Tester) Save() error {
 // Enforce returns an error if code is untested if the -e command line option
 // is set
 func (t *Tester) Enforce() error {
+	if t.setup.Files && !t.setup.Enforce {
+		return errors.New("the -f flag requires the -e flag")
+	}
 	if !t.setup.Enforce {
 		return nil
 	}
