@@ -127,10 +127,19 @@ func (t *Tester) Enforce() error {
 			return errors.Wrapf(err, "Error reading source file %s", fpath)
 		}
 		lines := strings.Split(string(by), "\n")
+		dash := "-"
+		if t.setup.Files {
+			dash = " - "
+		}
 		for _, b := range blocks {
-			s += fmt.Sprintf("%s:%d-%d:\n", name, b.StartLine, b.EndLine)
+			path := name
+			if t.setup.Files {
+				path = fpath
+			}
+			s += fmt.Sprintf("%s:%d%s%d:\n", path, b.StartLine, dash, b.EndLine)
 			undented := undent(lines[b.StartLine-1 : b.EndLine])
 			s += strings.Join(undented, "\n")
+			s += "\n"
 		}
 	}
 	return errors.Errorf("Error - untested code:\n%s", s)
