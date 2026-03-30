@@ -3,7 +3,6 @@ package tester
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,7 +49,7 @@ func (t *Tester) Load() error {
 func (t *Tester) Test() error {
 
 	var err error
-	if t.cover, err = ioutil.TempDir("", "coverage"); err != nil {
+	if t.cover, err = os.MkdirTemp("", "coverage"); err != nil {
 		return errors.Wrap(err, "Error creating temporary coverage dir")
 	}
 	defer os.RemoveAll(t.cover)
@@ -125,7 +124,7 @@ func (t *Tester) Enforce() error {
 		if err != nil {
 			return err
 		}
-		by, err := ioutil.ReadFile(fpath)
+		by, err := os.ReadFile(fpath)
 		if err != nil {
 			return errors.Wrapf(err, "Error reading source file %s", fpath)
 		}
@@ -202,7 +201,7 @@ func (t *Tester) processDir(dir string) error {
 		fmt.Sprintf("%x", md5.Sum([]byte(dir)))+".out",
 	)
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return errors.Wrapf(err, "Error reading files from %s", dir)
 	}

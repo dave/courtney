@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"io/ioutil"
-	"path/filepath"
-
 	"bytes"
-	"strings"
-
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/dave/courtney/shared"
 	"github.com/dave/patsy"
@@ -87,7 +84,7 @@ ns/a/a.go:8-11:
 				t.Fatalf("Error in %s err. Got: \n%s\nExpected to contain: \n%s\n", name, err.Error(), expected)
 			}
 
-			coverage, err := ioutil.ReadFile(filepath.Join(pdir, "coverage.out"))
+			coverage, err := os.ReadFile(filepath.Join(pdir, "coverage.out"))
 			if err != nil {
 				t.Fatalf("Error reading coverage file in %s: %s", name, err)
 			}
@@ -180,7 +177,7 @@ ns/a/a.go:8.24,11.5 2 1
 				t.Fatalf("Error running program in %s: %s", name, err)
 			}
 
-			coverage, err := ioutil.ReadFile(filepath.Join(pdir, "coverage.out"))
+			coverage, err := os.ReadFile(filepath.Join(pdir, "coverage.out"))
 			if err != nil {
 				t.Fatalf("Error reading coverage file in %s: %s", name, err)
 			}
