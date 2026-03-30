@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/dave/courtney.svg?branch=master)](https://travis-ci.org/dave/courtney) [![Go Report Card](https://goreportcard.com/badge/github.com/dave/courtney)](https://goreportcard.com/report/github.com/dave/courtney) [![codecov](https://codecov.io/gh/dave/courtney/branch/master/graph/badge.svg)](https://codecov.io/gh/dave/courtney)
+[![Test](https://github.com/dave/courtney/actions/workflows/test.yml/badge.svg)](https://github.com/dave/courtney/actions/workflows/test.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/dave/courtney)](https://goreportcard.com/report/github.com/dave/courtney) [![codecov](https://codecov.io/gh/dave/courtney/branch/master/graph/badge.svg)](https://codecov.io/gh/dave/courtney)
 
 # Courtney
 
@@ -94,7 +94,7 @@ The command will exit with an error if any code remains uncovered. Combining a
 CI system with a fully tested package and the `-e` flag is extremely useful. It 
 ensures any pull request has tests that cover all new code. For example, [here 
 is a PR](https://github.com/dave/courtney/pull/5) for this project that lacks 
-tests. As you can see the Travis build failed with a descriptive error. 
+tests. As you can see the CI build failed with a descriptive error.
 
 If you specify the `-f` flag _in addition to_ `-e`, the output of enforce will
 show the file paths to files with lines that lack testing (rather than their
@@ -126,42 +126,44 @@ Courtney will fail if the tests fail. If the tests succeed, it will create or
 overwrite a `coverage.out` file in the current directory.
 
 # Continuous integration
-To upload your coverage to [codecov.io](https://codecov.io/) via 
-[travis](https://travis-ci.org/), use a `.travis.yml` file something like this:
+To upload your coverage to [codecov.io](https://codecov.io/) via GitHub Actions,
+use a workflow like this:
 
 ```yml
-language: go
-go:
-  - 1.x
-notifications:
-  email:
-    recipients: <your-email>
-    on_failure: always
-install:
-  - go get -u github.com/dave/courtney
-  - go get -t -v ./...
-script:
-  - courtney
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.x"
+      - run: go install github.com/dave/courtney@latest
+      - run: courtney
+      - uses: codecov/codecov-action@v4
+        with:
+          files: coverage.out
 ```
 
 For [coveralls.io](https://coveralls.io/), use something like this:
 
 ```yml
-language: go
-go:
-    - 1.x
-notifications:
-  email:
-    recipients: <your-email>
-    on_failure: always
-install:
-  - go get -u github.com/mattn/goveralls
-  - go get -u github.com/dave/courtney
-  - go get -t -v ./...
-script:
-  - courtney
-after_success:
-  - goveralls -coverprofile=coverage.out -service=travis-ci
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.x"
+      - run: go install github.com/dave/courtney@latest
+      - run: go install github.com/mattn/goveralls@latest
+      - run: courtney
+      - run: goveralls -coverprofile=coverage.out -service=github
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
